@@ -9,11 +9,28 @@ const theme = createTheme({
   }
 })
 
+const GA = () => {
+  return (
+    <>
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-HJ07ZDPPH1"></script>
+      <script dangerouslySetInnerHTML={{
+        __html: `window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-HJ07ZDPPH1');`
+      }}>
+      </script>
+    </>
+  )
+}
+
 function MyApp({ Component, pageProps }: AppProps) {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline enableColorScheme />
       <Component {...pageProps} />
+      <GA />
     </ThemeProvider>
   )
 }
