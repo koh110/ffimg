@@ -14,6 +14,7 @@ import Button from '@mui/material/Button'
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos'
 import DownloadIcon from '@mui/icons-material/Download'
 import { ArrowLeft, ArrowRight, ArrowDropUp, ArrowDropDown } from '@mui/icons-material'
+import { COPYRIGHT_STR } from '../../../lib/constants'
 import { Slider } from './Slider'
 
 type MenuType = 'crop' | 'copyright' | null
@@ -264,6 +265,9 @@ export const EditMenu: React.FC<Props> = (props) => {
                 <DeleteIcon />
               </IconButton>
             )}
+          </Stack>
+          <Stack>
+            <footer style={{ fontSize: '0.7em' }}>{COPYRIGHT_STR}</footer>
           </Stack>
         </Stack>
       </Paper>

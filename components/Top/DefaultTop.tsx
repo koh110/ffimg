@@ -8,6 +8,7 @@ import EditIcon from '@mui/icons-material/Edit'
 import { Head, Header } from '../Header'
 import { Upload, Props as UploadProps } from './Upload'
 import { Dropper } from './Dropper'
+import { COPYRIGHT_STR } from '../../lib/constants'
 
 export type Props = {
   file: string | undefined
@@ -37,6 +38,7 @@ export const DefaultTop: React.FC<Props> = (props) => {
             </CardContent>
           </Card>
         </Container>
+        <footer style={{ padding: '0 1em'}}>{COPYRIGHT_STR}</footer>
       </main>
     </>
   )

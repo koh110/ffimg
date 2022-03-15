@@ -5,6 +5,7 @@ import Box from '@mui/material/Box'
 import { Head, Header } from '../../Header'
 import { EditMenu, Props as EditMenuProps } from './EditMenu'
 import { DownloadDialog } from './DownloadDialog'
+import { COPYRIGHT_STR } from '../../../lib/constants'
 
 type Props = {
   file: string
@@ -250,7 +251,7 @@ export const Edit: React.FC<Props> = (props) => {
         height: '400'
       })
 
-      const copyrightText = new fabric.Text('(C) SQUARE ENIX CO., LTD. All Rights Reserved.', { ...INIT_COPYRIGHT })
+      const copyrightText = new fabric.Text(COPYRIGHT_STR, { ...INIT_COPYRIGHT })
       f.add(copyrightText)
       copyrightRef.current = copyrightText
 
