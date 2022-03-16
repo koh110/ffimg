@@ -1,32 +1,33 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react'
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react'
+import throttle from 'lodash.throttle'
+import debounce from 'lodash.debounce'
 import { fabric } from 'fabric'
 import Container from '@mui/material/Container'
 import Box from '@mui/material/Box'
 import { Head, Header } from '../../Header'
 import { EditMenu, Props as EditMenuProps } from './EditMenu'
 import { DownloadDialog } from './DownloadDialog'
-import { COPYRIGHT_STR } from '../../../lib/constants'
+import { COPYRIGHT_STR, DEFAULT_VALUES } from '../../../lib/constants'
 
 type Props = {
   file: string
   fileName: string
   onBack: () => void
 }
-const INIT_COPYRIGHT_FONTSIZE = 15
 const INIT_COPYRIGHT_FILL = '#FFFFFF'
 
 const INIT_COPYRIGHT: fabric.TextOptions = {
   left: 0,
   top: 0,
   fill: INIT_COPYRIGHT_FILL,
-  fontSize: INIT_COPYRIGHT_FONTSIZE,
+  fontSize: DEFAULT_VALUES.COPYRIGHT_FONTSIZE,
   selectable: false,
   hasControls: false,
+  hasRotatingPoint: false,
   visible: false
-}
+} as const
 
 export const Edit: React.FC<Props> = (props) => {
-  const saveCropTimer = useRef<number>()
   const fabricRef = useRef<fabric.Canvas>()
   const boundingBoxRef = useRef<fabric.Rect>()
   const cropRef = useRef<fabric.Rect>()
@@ -36,72 +37,79 @@ export const Edit: React.FC<Props> = (props) => {
   const imgDomRef = useRef<HTMLImageElement>(null)
   const [dataUrl, setDataUrl] = useState('')
   const [cropFlag, setCropFlag] = useState(false)
-  const [scale, setScale] = useState<number>(100)
-  const [rotate, setRotate] = useState<number>(0)
+  const [scale, setScale] = useState<number>(DEFAULT_VALUES.SCALE)
+  const [rotate, setRotate] = useState<number>(DEFAULT_VALUES.ROTATE)
   const [modalOpen, setModalOpen] = useState<boolean>(false)
-
-  const saveCropDataUrl = useCallback(
-    (crop: boolean) => {
-      if (saveCropTimer.current) {
-        clearTimeout(saveCropTimer.current)
+  const throttledRotate = useRef(
+    debounce((newRotate: number) => {
+      if (imageRef.current) {
+        imageRef.current.rotate(newRotate)
       }
-      saveCropTimer.current = window.setTimeout(() => {
-        if (!fabricRef.current) {
-          return
-        }
-        fabricRef.current?.setZoom(1)
-        const options: fabric.IDataURLOptions = {
-          format: 'png',
-          left: 0,
-          top: 0,
-          width: ((fabricRef.current.width ?? 1) * 100) / scale,
-          height: ((fabricRef.current.height ?? 1) * 100) / scale
-        }
-        if (cropRef.current && crop) {
-          cropRef.current.set({ opacity: 0 }).setCoords()
-          const scaleX = cropRef.current.scaleX ?? 1
-          const scaleY = cropRef.current.scaleY ?? 1
-          options.left = cropRef.current.left ?? 0
-          options.top = cropRef.current.top ?? 0
-          options.width = (cropRef.current.width ?? 1) * scaleX
-          options.height = (cropRef.current.height ?? 1) * scaleY
-        }
-        const _dataUrl = fabricRef.current.toDataURL(options)
-        setDataUrl(_dataUrl)
-
-        if (cropRef.current && crop) {
-          cropRef.current?.set({ opacity: 1 }).setCoords()
-        }
-        fabricRef.current?.setZoom(scale / 100)
-      }, 200)
-    },
-    [scale]
+      setCanvasSize(scale)
+      fabricRef.current?.renderAll()
+      saveCropDataUrl(cropFlag)
+    }, 10)
   )
+  useEffect(() => throttledRotate.current(rotate), [rotate])
 
-  const setCanvasSize = useCallback((_scale: number) => {
-    if (!imageRef.current) {
-      return
-    }
+  const saveCropDataUrl = useMemo(() => {
+    return throttle((crop: boolean) => {
+      if (!fabricRef.current) {
+        return
+      }
+      fabricRef.current?.setZoom(1)
+      const options: fabric.IDataURLOptions = {
+        format: 'png',
+        left: 0,
+        top: 0,
+        width: ((fabricRef.current.width ?? 1) * 100) / scale,
+        height: ((fabricRef.current.height ?? 1) * 100) / scale
+      }
+      if (cropRef.current && crop) {
+        cropRef.current.set({ opacity: 0 }).setCoords()
+        const scaleX = cropRef.current.scaleX ?? 1
+        const scaleY = cropRef.current.scaleY ?? 1
+        options.left = cropRef.current.left ?? 0
+        options.top = cropRef.current.top ?? 0
+        options.width = (cropRef.current.width ?? 1) * scaleX
+        options.height = (cropRef.current.height ?? 1) * scaleY
+      }
+      const _dataUrl = fabricRef.current.toDataURL(options)
+      setDataUrl(_dataUrl)
 
-    fabricRef.current?.setZoom(_scale / 100)
-    const bounding = imageRef.current.setCoords().getBoundingRect()
-    fabricRef.current?.setDimensions({
-      width: bounding.width,
-      height: bounding.height
-    })
+      if (cropRef.current && crop) {
+        cropRef.current?.set({ opacity: 1 }).setCoords()
+      }
+      fabricRef.current?.setZoom(scale / 100)
+    }, 500)
+  }, [scale])
 
-    if (boundingBoxRef.current) {
-      boundingBoxRef.current
-        .set({
-          top: 0,
-          left: 0,
-          width: (bounding.width / _scale) * 100,
-          height: (bounding.height / _scale) * 100
-        })
-        .setCoords()
-    }
+  const setCanvasSize = useMemo(() => {
+    return throttle((_scale: number) => {
+      if (!imageRef.current) {
+        return
+      }
 
-    imageRef.current.viewportCenter().setCoords()
+      fabricRef.current?.setZoom(_scale / 100)
+      const bounding = imageRef.current.setCoords().getBoundingRect()
+      fabricRef.current?.setDimensions({
+        width: bounding.width,
+        height: bounding.height
+      })
+
+      if (boundingBoxRef.current) {
+        boundingBoxRef.current
+          .set({
+            top: 0,
+            left: 0,
+            width: (bounding.width / _scale) * 100,
+            height: (bounding.height / _scale) * 100
+          })
+          .setCoords()
+      }
+
+      imageRef.current.viewportCenter().setCoords()
+    }, 200)
   }, [])
 
   const handleScaleChange = useCallback(
@@ -112,18 +120,9 @@ export const Edit: React.FC<Props> = (props) => {
     [setCanvasSize]
   )
 
-  const handleRotateChange = useCallback(
-    (_rotate: number) => {
-      setRotate(_rotate)
-      if (imageRef.current) {
-        imageRef.current.rotate(_rotate)
-      }
-      setCanvasSize(scale)
-      fabricRef.current?.renderAll()
-      saveCropDataUrl(cropFlag)
-    },
-    [cropFlag, saveCropDataUrl, scale, setCanvasSize]
-  )
+  const handleRotateChange = useCallback((_rotate: number) => {
+    setRotate(_rotate)
+  }, [])
 
   const initCrop = useCallback(() => {
     if (!cropRef.current) {
@@ -260,7 +259,8 @@ export const Edit: React.FC<Props> = (props) => {
         width: 20,
         height: 20,
         evented: false,
-        selectable: false
+        selectable: false,
+        hasRotatingPoint: false
       })
       boundingBoxRef.current = boundingBox
       f.add(boundingBox)
@@ -273,7 +273,8 @@ export const Edit: React.FC<Props> = (props) => {
         stroke: 'red',
         strokeWidth: 1,
         strokeUniform: true,
-        visible: false
+        visible: false,
+        hasRotatingPoint: false
       })
       crop.setControlsVisibility({ mtr: false })
       f.add(crop)
@@ -339,7 +340,7 @@ export const Edit: React.FC<Props> = (props) => {
           scale={scale}
           rotate={rotate}
           copyright={{
-            fontSize: copyright.fontSize ?? INIT_COPYRIGHT_FONTSIZE,
+            fontSize: copyright.fontSize ?? DEFAULT_VALUES.COPYRIGHT_FONTSIZE,
             color: copyright.fill ?? INIT_COPYRIGHT_FILL
           }}
           handleScaleChange={handleScaleChange}

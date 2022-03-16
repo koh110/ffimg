@@ -14,7 +14,7 @@ import Button from '@mui/material/Button'
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos'
 import DownloadIcon from '@mui/icons-material/Download'
 import { ArrowLeft, ArrowRight, ArrowDropUp, ArrowDropDown } from '@mui/icons-material'
-import { COPYRIGHT_STR } from '../../../lib/constants'
+import { COPYRIGHT_STR, DEFAULT_VALUES } from '../../../lib/constants'
 import { Slider } from './Slider'
 
 type MenuType = 'crop' | 'copyright' | null
@@ -204,6 +204,7 @@ export const EditMenu: React.FC<Props> = (props) => {
           <Slider
             title="拡大/縮小"
             value={props.scale}
+            defaultValue={DEFAULT_VALUES.SCALE}
             min={1}
             max={100}
             sliderStep={10}
@@ -213,6 +214,7 @@ export const EditMenu: React.FC<Props> = (props) => {
           <Slider
             title="回転"
             value={props.rotate}
+            defaultValue={DEFAULT_VALUES.ROTATE}
             min={-180}
             max={180}
             sliderStep={10}
@@ -234,6 +236,7 @@ export const EditMenu: React.FC<Props> = (props) => {
             <Slider
               disabled={!checkedCopyright}
               value={props.copyright.fontSize}
+              defaultValue={DEFAULT_VALUES.COPYRIGHT_FONTSIZE}
               min={0}
               max={50}
               sliderStep={1}

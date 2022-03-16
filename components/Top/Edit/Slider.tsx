@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import Typography from '@mui/material/Typography'
 import MuiSlider from '@mui/material/Slider'
 import Grid from '@mui/material/Grid'
@@ -11,6 +11,7 @@ type Props = {
   title?: string
   disabled?: boolean
   value: number
+  defaultValue: number
   max: number
   min: number
   sliderStep: number
@@ -19,52 +20,56 @@ type Props = {
 }
 
 export const Slider: React.FC<Props> = (props) => {
-  const value = useMemo(() => {
-    return props.value
-  }, [props.value])
-  const handleSliderChange: Parameters<typeof MuiSlider>[0]['onChange'] = (event, newValue) => {
-    const val = newValue as number
-    if (val < props.min) {
-      props.handleSliderChange(props.min)
-      return
-    }
-    if (val > props.max) {
-      props.handleSliderChange(props.max)
-      return
-    }
-    props.handleSliderChange(val)
-  }
+  const value = useMemo(() => props.value || props.defaultValue, [props.value, props.defaultValue])
+  const handleSliderChange: Parameters<typeof MuiSlider>[0]['onChange'] = useCallback(
+    (event, newValue) => {
+      const val = newValue as number
+      if (val < props.min) {
+        props.handleSliderChange(props.min)
+        return
+      }
+      if (val > props.max) {
+        props.handleSliderChange(props.max)
+        return
+      }
+      props.handleSliderChange(val)
+    },
+    [props]
+  )
 
-  const handleInputChange: Parameters<typeof MuiInput>[0]['onChange'] = (event) => {
-    if (event.target.value === '') {
-      props.handleSliderChange(props.max)
-      return
-    }
-    const val = Number(event.target.value)
-    if (val < props.min) {
-      props.handleSliderChange(props.min)
-      return
-    }
-    props.handleSliderChange(val)
-  }
+  const handleInputChange: Parameters<typeof MuiInput>[0]['onChange'] = useCallback(
+    (event) => {
+      if (event.target.value === '') {
+        props.handleSliderChange(props.max)
+        return
+      }
+      const val = Number(event.target.value)
+      if (val < props.min) {
+        props.handleSliderChange(props.min)
+        return
+      }
+      props.handleSliderChange(val)
+    },
+    [props]
+  )
 
-  const handleBlur = () => {
-    if (props.value < props.min) {
+  const handleBlur = useCallback(() => {
+    if (value < props.min) {
       props.handleSliderChange(props.min)
     } else if (props.value > props.max) {
       props.handleSliderChange(props.max)
     }
-  }
+  }, [props, value])
 
-  const onAdd = () => {
-    const val = props.value + props.sliderStep > props.max ? props.max : props.value + props.sliderStep
+  const onAdd = useCallback(() => {
+    const val = value + props.sliderStep > props.max ? props.max : value + props.sliderStep
     props.handleSliderChange(val)
-  }
+  }, [props, value])
 
-  const onRemove = () => {
-    const val = props.value - props.sliderStep < props.min ? props.min : props.value - props.sliderStep
+  const onRemove = useCallback(() => {
+    const val = value - props.sliderStep < props.min ? props.min : value - props.sliderStep
     props.handleSliderChange(val)
-  }
+  }, [props, value])
 
   return (
     <Grid container>
@@ -80,6 +85,7 @@ export const Slider: React.FC<Props> = (props) => {
             <MuiSlider
               disabled={props.disabled}
               value={value}
+              defaultValue={props.defaultValue}
               min={props.min}
               max={props.max}
               step={props.sliderStep || 1}

@@ -38,7 +38,7 @@ export const DefaultTop: React.FC<Props> = (props) => {
             </CardContent>
           </Card>
         </Container>
-        <footer style={{ padding: '0 1em'}}>{COPYRIGHT_STR}</footer>
+        <footer style={{ padding: '0 1em' }}>{COPYRIGHT_STR}</footer>
       </main>
     </>
   )
