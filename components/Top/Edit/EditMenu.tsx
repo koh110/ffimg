@@ -215,7 +215,7 @@ export const EditMenu: React.FC<Props> = (props) => {
             value={props.rotate}
             min={-180}
             max={180}
-            sliderStep={10}
+            sliderStep={45}
             step={1}
             handleSliderChange={handleRotateChange}
           />
