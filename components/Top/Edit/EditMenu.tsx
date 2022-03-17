@@ -30,7 +30,7 @@ type Position = {
 }
 
 export type Props = {
-  dataUrl: string
+  thumb: React.ReactNode
   scale: number
   rotate: number
   copyright: {
@@ -175,7 +175,7 @@ export const EditMenu: React.FC<Props> = (props) => {
       }}
     >
       <Paper elevation={4} sx={{ p: 2, borderRadius: '16px' }}>
-        <img src={props.dataUrl} style={{ maxWidth: '400px', maxHeight: '200px' }} />
+        {props.thumb}
         <Stack spacing={2} divider={<Divider flexItem />}>
           <Stack spacing={1}>
             <Stack direction="row" spacing={1}>

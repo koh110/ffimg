@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useState, useCallback } from 'react'
+import React, { useRef, useMemo, useState, useCallback, useEffect } from 'react'
 import Typography from '@mui/material/Typography'
 import Stack from '@mui/material/Stack'
 import Paper from '@mui/material/Paper'
@@ -18,7 +18,7 @@ import { Slider } from './Slider'
 type Props = {
   open: boolean
   onClose: () => void
-  dataUrl: string
+  canvas?: HTMLCanvasElement
   fileName: string
 }
 
@@ -31,8 +31,8 @@ export const DownloadDialog: React.FC<Props> = (props) => {
   const [blob, setBlob] = useState<Blob | null>(null)
   const [size, setSize] = useState(0)
   const [quality, setQuality] = useState(1)
+  const [dataUrl, setDataUrl] = useState('')
   const imageRef = useRef<HTMLImageElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileName = useMemo(() => {
     return props.fileName.slice(0, props.fileName.lastIndexOf('.'))
   }, [props.fileName])
@@ -49,13 +49,9 @@ export const DownloadDialog: React.FC<Props> = (props) => {
     return `${round(size)}B`
   }, [size])
 
-  const onClose = useCallback(() => {
-    props.onClose()
-  }, [props])
-
   const toBlob = useCallback(
-    (_type: string) => {
-      if (!canvasRef.current) {
+    (canvas: HTMLCanvasElement | undefined, _type: string) => {
+      if (!canvas) {
         return
       }
       const set = (blob: Blob | null) => {
@@ -63,44 +59,45 @@ export const DownloadDialog: React.FC<Props> = (props) => {
         setSize(blob?.size ?? 0)
       }
       if (_type === 'jpeg') {
-        canvasRef.current.toBlob(set, `image/${_type}`, quality)
+        canvas.toBlob(set, `image/${_type}`, quality)
         return
       }
-      canvasRef.current.toBlob(set, `image/${_type}`)
+      canvas.toBlob(set, `image/${_type}`)
     },
     [quality]
   )
 
-  const onloadImage = useCallback(() => {
-    if (!canvasRef.current || !imageRef.current) {
+  useEffect(() => {
+    if (!props.canvas) {
       return
     }
-    canvasRef.current.width = imageRef.current.naturalWidth
-    canvasRef.current.height = imageRef.current.naturalHeight
-    const ctx = canvasRef.current.getContext('2d')
-    ctx?.drawImage(imageRef.current, 0, 0)
-    toBlob(type)
-  }, [toBlob, type])
+    setDataUrl(props.canvas.toDataURL())
+    toBlob(props.canvas, type)
+  }, [props.canvas, toBlob, type])
+
+  const onClose = useCallback(() => {
+    props.onClose()
+  }, [props])
 
   const onSelectType: SelectProps<string>['onChange'] = useCallback(
     (e) => {
       const _type = e.target.value
       setType(_type)
-      toBlob(_type)
+      toBlob(props.canvas, _type)
     },
-    [toBlob]
+    [props.canvas, toBlob]
   )
 
   const handleSliderChange = useCallback(
     (val: number) => {
       setQuality(val)
-      toBlob(type)
+      toBlob(props.canvas, type)
     },
-    [toBlob, type]
+    [props.canvas, toBlob, type]
   )
 
   const download = useCallback(() => {
-    if (!canvasRef.current || !blob) {
+    if (!blob) {
       return
     }
     const link = document.createElement('a')
@@ -113,13 +110,12 @@ export const DownloadDialog: React.FC<Props> = (props) => {
 
   return (
     <Dialog open={props.open} onClose={onClose} PaperProps={{ sx: { maxWidth: '80vw', borderRadius: '16px' } }}>
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
       <DialogTitle>
         {fileName}.{type}
       </DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2}>
-          <img ref={imageRef} src={props.dataUrl} onLoad={onloadImage} style={{ maxWidth: '100%' }} />
+          <img ref={imageRef} src={dataUrl} style={{ maxWidth: '100%' }} />
           <Grid container spacing={2} width="100%">
             <Grid item xs={2} pl={0}>
               <Paper

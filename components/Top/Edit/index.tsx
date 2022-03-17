@@ -6,6 +6,7 @@ import { Head, Header } from '../../Header'
 import { EditMenu, Props as EditMenuProps } from './EditMenu'
 import { DownloadDialog } from './DownloadDialog'
 import { COPYRIGHT_STR } from '../../../lib/constants'
+import { Thumb } from './Thumb'
 
 type Props = {
   file: string
@@ -34,11 +35,11 @@ export const Edit: React.FC<Props> = (props) => {
   const copyrightRef = useRef<fabric.Text>()
   const [copyright, setCopyrightState] = useState({ ...INIT_COPYRIGHT })
   const imgDomRef = useRef<HTMLImageElement>(null)
-  const [dataUrl, setDataUrl] = useState('')
   const [cropFlag, setCropFlag] = useState(false)
   const [scale, setScale] = useState<number>(100)
   const [rotate, setRotate] = useState<number>(0)
   const [modalOpen, setModalOpen] = useState<boolean>(false)
+  const [downloadCanvas, setDownloadCanvas] = useState<HTMLCanvasElement>()
 
   const saveCropDataUrl = useCallback(
     (crop: boolean) => {
@@ -66,8 +67,7 @@ export const Edit: React.FC<Props> = (props) => {
           options.width = (cropRef.current.width ?? 1) * scaleX
           options.height = (cropRef.current.height ?? 1) * scaleY
         }
-        const _dataUrl = fabricRef.current.toDataURL(options)
-        setDataUrl(_dataUrl)
+        setDownloadCanvas(fabricRef.current.toCanvasElement(1, options))
 
         if (cropRef.current && crop) {
           cropRef.current?.set({ opacity: 1 }).setCoords()
@@ -305,15 +305,15 @@ export const Edit: React.FC<Props> = (props) => {
       initCrop()
     }
 
+    saveCropDataUrl(cropFlag)
     fabricRef.current.renderAll()
-  }, [initCrop, scale, setCanvasSize])
+  }, [cropFlag, initCrop, saveCropDataUrl, scale, setCanvasSize])
 
   useEffect(() => {
     if (!imgDomRef.current) {
       return
     }
     imgDomRef.current.src = props.file
-    setDataUrl(props.file)
   }, [props.file])
 
   const handleOnDownload = useCallback(() => {
@@ -335,7 +335,7 @@ export const Edit: React.FC<Props> = (props) => {
           </div>
         </Container>
         <EditMenu
-          dataUrl={dataUrl}
+          thumb={<Thumb canvas={downloadCanvas} />}
           scale={scale}
           rotate={rotate}
           copyright={{
@@ -352,7 +352,7 @@ export const Edit: React.FC<Props> = (props) => {
         <DownloadDialog
           open={modalOpen}
           onClose={() => setModalOpen(false)}
-          dataUrl={dataUrl}
+          canvas={downloadCanvas}
           fileName={props.fileName}
         />
       </main>
