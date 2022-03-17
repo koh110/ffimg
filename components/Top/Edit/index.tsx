@@ -41,19 +41,19 @@ export const Edit: React.FC<Props> = (props) => {
   const [rotate, setRotate] = useState<number>(DEFAULT_VALUES.ROTATE)
   const [modalOpen, setModalOpen] = useState<boolean>(false)
   const throttledRotate = useRef(
-    debounce((newRotate: number) => {
+    debounce((newScale: number, newRotate: number) => {
       if (imageRef.current) {
         imageRef.current.rotate(newRotate)
       }
-      setCanvasSize(scale)
+      setCanvasSize(newScale)
       fabricRef.current?.renderAll()
-      saveCropDataUrl(cropFlag)
+      saveCropDataUrl(newScale, cropFlag)
     }, 10)
   )
-  useEffect(() => throttledRotate.current(rotate), [rotate])
+  useEffect(() => throttledRotate.current(scale, rotate), [rotate, scale])
 
   const saveCropDataUrl = useMemo(() => {
-    return throttle((crop: boolean) => {
+    return throttle((newScale: number, crop: boolean) => {
       if (!fabricRef.current) {
         return
       }
@@ -62,8 +62,8 @@ export const Edit: React.FC<Props> = (props) => {
         format: 'png',
         left: 0,
         top: 0,
-        width: ((fabricRef.current.width ?? 1) * 100) / scale,
-        height: ((fabricRef.current.height ?? 1) * 100) / scale
+        width: ((fabricRef.current.width ?? 1) * 100) / newScale,
+        height: ((fabricRef.current.height ?? 1) * 100) / newScale
       }
       if (cropRef.current && crop) {
         cropRef.current.set({ opacity: 0 }).setCoords()
@@ -80,9 +80,9 @@ export const Edit: React.FC<Props> = (props) => {
       if (cropRef.current && crop) {
         cropRef.current?.set({ opacity: 1 }).setCoords()
       }
-      fabricRef.current?.setZoom(scale / 100)
+      fabricRef.current?.setZoom(newScale / 100)
     }, 500)
-  }, [scale])
+  }, [])
 
   const setCanvasSize = useMemo(() => {
     return throttle((_scale: number) => {
@@ -187,10 +187,10 @@ export const Edit: React.FC<Props> = (props) => {
       }
 
       setCropFlag(flag)
-      saveCropDataUrl(flag)
+      saveCropDataUrl(scale, flag)
       fabricRef.current?.renderAll()
     },
-    [cropFlag, initCrop, saveCropDataUrl]
+    [cropFlag, initCrop, saveCropDataUrl, scale]
   )
 
   const handleOnCopyright: EditMenuProps['handleOnCopyright'] = useCallback(
@@ -204,7 +204,7 @@ export const Edit: React.FC<Props> = (props) => {
         copyrightRef.current.visible = false
         fabricRef.current?.discardActiveObject()
         fabricRef.current?.renderAll()
-        saveCropDataUrl(cropFlag)
+        saveCropDataUrl(scale, cropFlag)
         return
       }
 
@@ -234,9 +234,9 @@ export const Edit: React.FC<Props> = (props) => {
       copyrightRef.current.bringToFront()
       fabricRef.current?.setActiveObject(copyrightRef.current)
       fabricRef.current?.renderAll()
-      saveCropDataUrl(cropFlag)
+      saveCropDataUrl(scale, cropFlag)
     },
-    [copyright, cropFlag, saveCropDataUrl]
+    [copyright, cropFlag, saveCropDataUrl, scale]
   )
 
   const ref = useCallback((node) => {
@@ -318,9 +318,9 @@ export const Edit: React.FC<Props> = (props) => {
   }, [props.file])
 
   const handleOnDownload = useCallback(() => {
-    saveCropDataUrl(cropFlag)
+    saveCropDataUrl(scale, cropFlag)
     setModalOpen(true)
-  }, [cropFlag, saveCropDataUrl])
+  }, [cropFlag, saveCropDataUrl, scale])
 
   return (
     <>
