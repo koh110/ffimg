@@ -21,5 +21,5 @@ export const Thumb: React.FC<Props> = (props) => {
     throttledDataUrl.current(props.canvas)
   }, [props.canvas])
 
-  return (<img src={dataUrl} style={{ maxWidth: '400px', maxHeight: '200px' }} />)
+  return <img src={dataUrl} style={{ maxWidth: '400px', maxHeight: '200px' }} />
 }
