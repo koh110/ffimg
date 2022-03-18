@@ -1,11 +1,13 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react'
 import { fabric } from 'fabric'
+import debounce from 'lodash.debounce'
 import Container from '@mui/material/Container'
 import Box from '@mui/material/Box'
 import { Head, Header } from '../../Header'
 import { EditMenu, Props as EditMenuProps } from './EditMenu'
 import { DownloadDialog } from './DownloadDialog'
 import { COPYRIGHT_STR } from '../../../lib/constants'
+import { Thumb } from './Thumb'
 
 type Props = {
   file: string
@@ -34,48 +36,41 @@ export const Edit: React.FC<Props> = (props) => {
   const copyrightRef = useRef<fabric.Text>()
   const [copyright, setCopyrightState] = useState({ ...INIT_COPYRIGHT })
   const imgDomRef = useRef<HTMLImageElement>(null)
-  const [dataUrl, setDataUrl] = useState('')
   const [cropFlag, setCropFlag] = useState(false)
   const [scale, setScale] = useState<number>(100)
   const [rotate, setRotate] = useState<number>(0)
   const [modalOpen, setModalOpen] = useState<boolean>(false)
+  const [downloadCanvas, setDownloadCanvas] = useState<HTMLCanvasElement>()
 
-  const saveCropDataUrl = useCallback(
-    (crop: boolean) => {
-      if (saveCropTimer.current) {
-        clearTimeout(saveCropTimer.current)
+  const saveCropData = useRef(
+    debounce((newScale: number, crop: boolean) => {
+      if (!fabricRef.current) {
+        return
       }
-      saveCropTimer.current = window.setTimeout(() => {
-        if (!fabricRef.current) {
-          return
-        }
-        fabricRef.current?.setZoom(1)
-        const options: fabric.IDataURLOptions = {
-          format: 'png',
-          left: 0,
-          top: 0,
-          width: ((fabricRef.current.width ?? 1) * 100) / scale,
-          height: ((fabricRef.current.height ?? 1) * 100) / scale
-        }
-        if (cropRef.current && crop) {
-          cropRef.current.set({ opacity: 0 }).setCoords()
-          const scaleX = cropRef.current.scaleX ?? 1
-          const scaleY = cropRef.current.scaleY ?? 1
-          options.left = cropRef.current.left ?? 0
-          options.top = cropRef.current.top ?? 0
-          options.width = (cropRef.current.width ?? 1) * scaleX
-          options.height = (cropRef.current.height ?? 1) * scaleY
-        }
-        const _dataUrl = fabricRef.current.toDataURL(options)
-        setDataUrl(_dataUrl)
+      fabricRef.current?.setZoom(1)
+      const options: fabric.IDataURLOptions = {
+        format: 'png',
+        left: 0,
+        top: 0,
+        width: ((fabricRef.current.width ?? 1) * 100) / newScale,
+        height: ((fabricRef.current.height ?? 1) * 100) / newScale
+      }
+      if (cropRef.current && crop) {
+        cropRef.current.set({ opacity: 0 }).setCoords()
+        const scaleX = cropRef.current.scaleX ?? 1
+        const scaleY = cropRef.current.scaleY ?? 1
+        options.left = cropRef.current.left ?? 0
+        options.top = cropRef.current.top ?? 0
+        options.width = (cropRef.current.width ?? 1) * scaleX
+        options.height = (cropRef.current.height ?? 1) * scaleY
+      }
+      setDownloadCanvas(fabricRef.current.toCanvasElement(1, options))
 
-        if (cropRef.current && crop) {
-          cropRef.current?.set({ opacity: 1 }).setCoords()
-        }
-        fabricRef.current?.setZoom(scale / 100)
-      }, 200)
-    },
-    [scale]
+      if (cropRef.current && crop) {
+        cropRef.current?.set({ opacity: 1 }).setCoords()
+      }
+      fabricRef.current?.setZoom(newScale / 100)
+    }, 100)
   )
 
   const setCanvasSize = useCallback((_scale: number) => {
@@ -120,9 +115,9 @@ export const Edit: React.FC<Props> = (props) => {
       }
       setCanvasSize(scale)
       fabricRef.current?.renderAll()
-      saveCropDataUrl(cropFlag)
+      saveCropData.current(scale, cropFlag)
     },
-    [cropFlag, saveCropDataUrl, scale, setCanvasSize]
+    [cropFlag, scale, setCanvasSize]
   )
 
   const initCrop = useCallback(() => {
@@ -188,10 +183,10 @@ export const Edit: React.FC<Props> = (props) => {
       }
 
       setCropFlag(flag)
-      saveCropDataUrl(flag)
+      saveCropData.current(scale, flag)
       fabricRef.current?.renderAll()
     },
-    [cropFlag, initCrop, saveCropDataUrl]
+    [cropFlag, initCrop, scale]
   )
 
   const handleOnCopyright: EditMenuProps['handleOnCopyright'] = useCallback(
@@ -205,7 +200,7 @@ export const Edit: React.FC<Props> = (props) => {
         copyrightRef.current.visible = false
         fabricRef.current?.discardActiveObject()
         fabricRef.current?.renderAll()
-        saveCropDataUrl(cropFlag)
+        saveCropData.current(scale, cropFlag)
         return
       }
 
@@ -235,9 +230,9 @@ export const Edit: React.FC<Props> = (props) => {
       copyrightRef.current.bringToFront()
       fabricRef.current?.setActiveObject(copyrightRef.current)
       fabricRef.current?.renderAll()
-      saveCropDataUrl(cropFlag)
+      saveCropData.current(scale, cropFlag)
     },
-    [copyright, cropFlag, saveCropDataUrl]
+    [copyright, cropFlag, scale]
   )
 
   const ref = useCallback((node) => {
@@ -305,21 +300,21 @@ export const Edit: React.FC<Props> = (props) => {
       initCrop()
     }
 
+    saveCropData.current(scale, cropFlag)
     fabricRef.current.renderAll()
-  }, [initCrop, scale, setCanvasSize])
+  }, [cropFlag, initCrop, scale, setCanvasSize])
 
   useEffect(() => {
     if (!imgDomRef.current) {
       return
     }
     imgDomRef.current.src = props.file
-    setDataUrl(props.file)
   }, [props.file])
 
   const handleOnDownload = useCallback(() => {
-    saveCropDataUrl(cropFlag)
+    saveCropData.current(scale, cropFlag)
     setModalOpen(true)
-  }, [cropFlag, saveCropDataUrl])
+  }, [cropFlag, scale])
 
   return (
     <>
@@ -335,7 +330,7 @@ export const Edit: React.FC<Props> = (props) => {
           </div>
         </Container>
         <EditMenu
-          dataUrl={dataUrl}
+          thumb={<Thumb canvas={downloadCanvas} />}
           scale={scale}
           rotate={rotate}
           copyright={{
@@ -352,7 +347,7 @@ export const Edit: React.FC<Props> = (props) => {
         <DownloadDialog
           open={modalOpen}
           onClose={() => setModalOpen(false)}
-          dataUrl={dataUrl}
+          canvas={downloadCanvas}
           fileName={props.fileName}
         />
       </main>

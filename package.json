@@ -17,12 +17,16 @@
     "@mui/icons-material": "^5.4.2",
     "@mui/material": "^5.4.3",
     "fabric": "^5.2.1",
+    "lodash.debounce": "^4.0.8",
+    "lodash.throttle": "^4.1.1",
     "next": "12.1.0",
     "react": "17.0.2",
     "react-dom": "17.0.2"
   },
   "devDependencies": {
     "@types/fabric": "^4.5.7",
+    "@types/lodash.debounce": "^4.0.6",
+    "@types/lodash.throttle": "^4.1.6",
     "@types/node": "17.0.19",
     "@types/react": "17.0.39",
     "eslint": "8.9.0",
