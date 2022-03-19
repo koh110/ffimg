@@ -7,7 +7,7 @@ import AddIcon from '@mui/icons-material/Add'
 import RemoveIcon from '@mui/icons-material/Remove'
 import Stack from '@mui/material/Stack'
 
-type Props = {
+export type Props = {
   title?: string
   disabled?: boolean
   value: number

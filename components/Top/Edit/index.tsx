@@ -333,10 +333,8 @@ export const Edit: React.FC<Props> = (props) => {
           thumb={<Thumb canvas={downloadCanvas} />}
           scale={scale}
           rotate={rotate}
-          copyright={{
-            fontSize: copyright.fontSize ?? INIT_COPYRIGHT_FONTSIZE,
-            color: copyright.fill ?? INIT_COPYRIGHT_FILL
-          }}
+          copyrightFontSize={copyright.fontSize ?? INIT_COPYRIGHT_FONTSIZE}
+          copyrightColor={copyright.fill ?? INIT_COPYRIGHT_FILL}
           handleScaleChange={handleScaleChange}
           handleRotateChange={handleRotateChange}
           handleOnCrop={handleOnCrop}

@@ -4,18 +4,15 @@ import Paper from '@mui/material/Paper'
 import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
 import IconButton from '@mui/material/IconButton'
-import CropIcon from '@mui/icons-material/Crop'
-import DoneIcon from '@mui/icons-material/Done'
-import CopyrightIcon from '@mui/icons-material/Copyright'
-import DeleteIcon from '@mui/icons-material/Delete'
-import MuiInput from '@mui/material/Input'
-import Switch from '@mui/material/Switch'
 import Button from '@mui/material/Button'
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos'
 import DownloadIcon from '@mui/icons-material/Download'
+import Tabs, { TabsProps } from '@mui/material/Tabs'
+import Tab from '@mui/material/Tab'
 import { ArrowLeft, ArrowRight, ArrowDropUp, ArrowDropDown } from '@mui/icons-material'
-import { COPYRIGHT_STR } from '../../../lib/constants'
-import { Slider } from './Slider'
+import { COPYRIGHT_STR } from '../../../../lib/constants'
+import { DefaultPanel, Props as  DefaultPanelProps } from './DefaultPanel'
+import { EditPanel, Props as EditPanelProps } from './EditPanel'
 
 type MenuType = 'crop' | 'copyright' | null
 type StateType = {
@@ -31,14 +28,12 @@ type Position = {
 
 export type Props = {
   thumb: React.ReactNode
-  scale: number
-  rotate: number
-  copyright: {
-    fontSize: number
-    color: string | fabric.Pattern | fabric.Gradient
-  }
-  handleScaleChange: (scale: number) => void
-  handleRotateChange: (rotate: number) => void
+  scale: DefaultPanelProps['scale']
+  rotate: DefaultPanelProps['rotate']
+  copyrightFontSize: DefaultPanelProps['copyrightFontSize']
+  copyrightColor: DefaultPanelProps['copyrightColor']
+  handleScaleChange: DefaultPanelProps['handleScaleChange']
+  handleRotateChange: DefaultPanelProps['handleRotateChange']
   handleOnCrop: MenuHandler
   handleOnCopyright: (checked: boolean, fontSize: number, color: string | fabric.Pattern | fabric.Gradient) => void
   handleOnDownload: () => void
@@ -53,6 +48,7 @@ export const EditMenu: React.FC<Props> = (props) => {
     right: '2em',
     bottom: '2em'
   })
+  const [tabValue, setTabValue] = useState<number>(0)
   const handlers: Map<MenuType, MenuHandler> = useMemo(() => {
     return new Map([['crop', props.handleOnCrop]])
   }, [props.handleOnCrop])
@@ -115,21 +111,21 @@ export const EditMenu: React.FC<Props> = (props) => {
   const handleOnCopyright = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
       setCheckedCopyright(checked)
-      props.handleOnCopyright(checked, props.copyright.fontSize, props.copyright.color)
+      props.handleOnCopyright(checked, props.copyrightFontSize, props.copyrightColor)
     },
     [props]
   )
 
   const handleOnSliderCopyright = useCallback(
     (val: number) => {
-      props.handleOnCopyright(checkedCopyright, val, props.copyright.color)
+      props.handleOnCopyright(checkedCopyright, val, props.copyrightColor)
     },
     [checkedCopyright, props]
   )
 
   const handleOnChangeColorCopyright: React.ChangeEventHandler<HTMLInputElement> = useCallback(
     (e) => {
-      props.handleOnCopyright(checkedCopyright, props.copyright.fontSize, e.currentTarget.value)
+      props.handleOnCopyright(checkedCopyright, props.copyrightFontSize, e.currentTarget.value)
     },
     [checkedCopyright, props]
   )
@@ -166,6 +162,14 @@ export const EditMenu: React.FC<Props> = (props) => {
     [menuPosition]
   )
 
+  const handleOnClopStart = useCallback(() => handleOn('crop'), [handleOn])
+  const handleOnDone = useCallback(() => handleDone(openMenu), [handleDone, openMenu])
+  const handleOnRemove = useCallback(() => handleRemove(openMenu), [handleRemove, openMenu])
+
+  const handleTabChange: TabsProps['onChange'] = (e, val) => {
+    setTabValue(val)
+  }
+
   return (
     <Box
       sx={{
@@ -201,70 +205,49 @@ export const EditMenu: React.FC<Props> = (props) => {
               </Button>
             </Stack>
           </Stack>
-          <Slider
-            title="拡大/縮小"
-            value={props.scale}
-            min={1}
-            max={100}
-            sliderStep={10}
-            step={1}
-            handleSliderChange={props.handleScaleChange}
-          />
-          <Slider
-            title="回転"
-            value={props.rotate}
-            min={-180}
-            max={180}
-            sliderStep={45}
-            step={1}
-            handleSliderChange={handleRotateChange}
-          />
-          <Box>
-            <Stack direction="row" alignItems="center" spacing={2}>
-              <CopyrightIcon />
-              <Switch onChange={handleOnCopyright} />
-              <MuiInput
-                disabled={!checkedCopyright}
-                type="color"
-                sx={{ width: '2em' }}
-                value={props.copyright.color}
-                onChange={handleOnChangeColorCopyright}
+          <Stack>
+            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+              <Tabs value={tabValue} onChange={handleTabChange} aria-label="basic tabs example">
+                <Tab label="表示" id="menu-tab-0" aria-controls="menu-tabpanel-0" />
+                <Tab label="編集" id="menu-tab-1" aria-controls="menu-tabpanel-1" />
+              </Tabs>
+            </Box>
+            <Box
+              hidden={tabValue !== 0}
+              id="menu-tabpanel-0"
+              aria-labelledby="menu-tab-0"
+              sx={{ pt: 1, pr: 1, pl: 1 }}
+            >
+              <DefaultPanel
+                scale={props.scale}
+                rotate={props.rotate}
+                copyrightColor={props.copyrightColor}
+                copyrightFontSize={props.copyrightFontSize}
+                checkedCopyright={checkedCopyright}
+                onFlag={onFlag}
+                handleScaleChange={props.handleScaleChange}
+                handleRotateChange={handleRotateChange}
+                handleOnCopyright={handleOnCopyright}
+                handleOnChangeColorCopyright={handleOnChangeColorCopyright}
+                handleOnSliderCopyright={handleOnSliderCopyright}
+                handleOnClopStart={handleOnClopStart}
+                handleOnDone={handleOnDone}
+                handleOnRemove={handleOnRemove}
               />
-            </Stack>
-            <Slider
-              disabled={!checkedCopyright}
-              value={props.copyright.fontSize}
-              min={0}
-              max={50}
-              sliderStep={1}
-              step={1}
-              handleSliderChange={handleOnSliderCopyright}
-            />
-          </Box>
-          <Stack direction="row" spacing={1}>
-            <IconButton color="primary" aria-label="upload picture" component="span" onClick={() => handleOn('crop')}>
-              <CropIcon />
-            </IconButton>
-            {onFlag && (
-              <IconButton
-                color="primary"
-                aria-label="upload picture"
-                component="span"
-                onClick={() => handleDone(openMenu)}
-              >
-                <DoneIcon />
-              </IconButton>
-            )}
-            {onFlag && (
-              <IconButton
-                color="primary"
-                aria-label="upload picture"
-                component="span"
-                onClick={() => handleRemove(openMenu)}
-              >
-                <DeleteIcon />
-              </IconButton>
-            )}
+            </Box>
+            <Box
+              hidden={tabValue !== 1}
+              id="menu-tabpanel-1"
+              aria-labelledby="menu-tab-1"
+              sx={{ pt: 1, pr: 1, pl: 1 }}
+            >
+              <EditPanel
+                onFlag={onFlag}
+                handleOnClopStart={handleOnClopStart}
+                handleOnDone={handleOnDone}
+                handleOnRemove={handleOnRemove}
+              />
+            </Box>
           </Stack>
           <Stack>
             <footer style={{ fontSize: '0.7em' }}>{COPYRIGHT_STR}</footer>
