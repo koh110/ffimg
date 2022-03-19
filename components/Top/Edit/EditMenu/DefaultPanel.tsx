@@ -1,65 +1,114 @@
-import React from 'react'
+import React, { useCallback } from 'react'
 import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
 import CopyrightIcon from '@mui/icons-material/Copyright'
 import MuiInput, { InputProps } from '@mui/material/Input'
 import Switch, { SwitchProps } from '@mui/material/Switch'
 import { Slider, Props as SliderProps } from '../Slider'
+import { useEditValue, useSetEditState } from '../../../../lib/hooks/edit'
+import { useEditUIValue, useSetEditUIState } from '../../../../lib/hooks/edit/ui'
 
 export type Props = {
-  scale: number
-  rotate: number
-  copyrightColor: string | fabric.Pattern | fabric.Gradient
-  copyrightFontSize: number
-  checkedCopyright: boolean
-  handleScaleChange: (scale: number) => void
-  handleRotateChange: (rotate: number) => void
-  handleOnCopyright: SwitchProps['onChange']
-  handleOnChangeColorCopyright: InputProps['onChange']
-  handleOnSliderCopyright: SliderProps['handleSliderChange']
+  handleScaleChange: SliderProps['handleSliderChange']
+  handleRotateChange: SliderProps['handleSliderChange']
+  handleOnCopyright: (
+    copyrightFlag: boolean,
+    fontSize: number,
+    color: string | fabric.Pattern | fabric.Gradient
+  ) => void
 }
 
 export const DefaultPanel: React.FC<Props> = (props) => {
+  const { scale, rotate, copyrightColor, copyrightFontSize } = useEditValue()
+  const { copyrightFlag } = useEditUIValue()
+  const { setScale, setRotate, setCopyrightFontSize, setCopyrightColor } = useSetEditState()
+  const { copyrightOn, copyrightOff } = useSetEditUIState()
+
+  const handleScaleChange = useCallback<SliderProps['handleSliderChange']>(
+    (newScale) => {
+      setScale(newScale)
+      props.handleScaleChange(newScale)
+    },
+    [props, setScale]
+  )
+
+  const handleRotateChange = useCallback<SliderProps['handleSliderChange']>(
+    (newRotate) => {
+      setRotate(newRotate)
+      props.handleRotateChange(newRotate)
+    },
+    [props, setRotate]
+  )
+
+  const handleOnCopyright = useCallback<Exclude<SwitchProps['onChange'], undefined>>(
+    (e, checked) => {
+      if (checked) {
+        copyrightOn()
+      } else {
+        copyrightOff()
+      }
+      props.handleOnCopyright(checked, copyrightFontSize, copyrightColor)
+    },
+    [copyrightColor, copyrightFontSize, copyrightOff, copyrightOn, props]
+  )
+
+  const handleOnSliderCopyright = useCallback<Exclude<SliderProps['handleSliderChange'], undefined>>(
+    (val) => {
+      setCopyrightFontSize(val)
+      props.handleOnCopyright(copyrightFlag, val, copyrightColor)
+    },
+    [copyrightColor, copyrightFlag, props, setCopyrightFontSize]
+  )
+
+  const handleOnChangeColorCopyright = useCallback<Exclude<InputProps['onChange'], undefined>>(
+    (e) => {
+      const color = e.currentTarget.value
+      setCopyrightColor(color)
+      props.handleOnCopyright(copyrightFlag, copyrightFontSize, color)
+    },
+    [copyrightFlag, copyrightFontSize, props, setCopyrightColor]
+  )
+
   return (
     <>
       <Slider
         title="拡大/縮小"
-        value={props.scale}
+        value={scale}
         min={1}
         max={100}
         sliderStep={10}
         step={1}
-        handleSliderChange={props.handleScaleChange}
+        handleSliderChange={handleScaleChange}
       />
       <Slider
         title="回転"
-        value={props.rotate}
+        value={rotate}
         min={-180}
         max={180}
         sliderStep={45}
         step={1}
-        handleSliderChange={props.handleRotateChange}
+        handleSliderChange={handleRotateChange}
       />
       <Box>
         <Stack direction="row" alignItems="center" spacing={2}>
           <CopyrightIcon />
-          <Switch onChange={props.handleOnCopyright} />
+          <Switch onChange={handleOnCopyright} />
           <MuiInput
-            disabled={!props.checkedCopyright}
+            disabled={!copyrightFlag}
             type="color"
             sx={{ width: '2em' }}
-            value={props.copyrightColor}
-            onChange={props.handleOnChangeColorCopyright}
+            value={copyrightColor}
+            onChange={handleOnChangeColorCopyright}
           />
         </Stack>
         <Slider
-          disabled={!props.checkedCopyright}
-          value={props.copyrightFontSize}
+          disabled={!copyrightFlag}
+          value={copyrightFontSize}
           min={0}
           max={50}
           sliderStep={1}
           step={1}
-          handleSliderChange={props.handleOnSliderCopyright}
+          handleSliderChange={handleOnSliderCopyright}
         />
       </Box>
     </>

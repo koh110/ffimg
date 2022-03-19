@@ -7,6 +7,8 @@ import { Head, Header } from '../../Header'
 import { EditMenu, Props as EditMenuProps } from './EditMenu'
 import { DownloadDialog } from './DownloadDialog'
 import { COPYRIGHT_STR } from '../../../lib/constants'
+import { useEditValue, useSetEditState } from '../../../lib/hooks/edit'
+import { useEditUIValue, useSetEditUIState } from '../../../lib/hooks/edit/ui'
 import { Thumb } from './Thumb'
 
 type Props = {
@@ -25,10 +27,12 @@ const INIT_COPYRIGHT: fabric.TextOptions = {
   selectable: false,
   hasControls: false,
   visible: false
-}
+} as const
 
 export const Edit: React.FC<Props> = (props) => {
-  const saveCropTimer = useRef<number>()
+  const { scale } = useEditValue()
+  const { openModalFlag, cropFlag } = useEditUIValue()
+  const { openModal, closeModal } = useSetEditUIState()
   const fabricRef = useRef<fabric.Canvas>()
   const boundingBoxRef = useRef<fabric.Rect>()
   const cropRef = useRef<fabric.Rect>()
@@ -36,10 +40,6 @@ export const Edit: React.FC<Props> = (props) => {
   const copyrightRef = useRef<fabric.Text>()
   const [copyright, setCopyrightState] = useState({ ...INIT_COPYRIGHT })
   const imgDomRef = useRef<HTMLImageElement>(null)
-  const [cropFlag, setCropFlag] = useState(false)
-  const [scale, setScale] = useState<number>(100)
-  const [rotate, setRotate] = useState<number>(0)
-  const [modalOpen, setModalOpen] = useState<boolean>(false)
   const [downloadCanvas, setDownloadCanvas] = useState<HTMLCanvasElement>()
 
   const saveCropData = useRef(
@@ -100,16 +100,14 @@ export const Edit: React.FC<Props> = (props) => {
   }, [])
 
   const handleScaleChange = useCallback(
-    (_scale: number) => {
-      setScale(_scale)
-      setCanvasSize(_scale)
+    (newScale: number) => {
+      setCanvasSize(newScale)
     },
     [setCanvasSize]
   )
 
   const handleRotateChange = useCallback(
     (_rotate: number) => {
-      setRotate(_rotate)
       if (imageRef.current) {
         imageRef.current.rotate(_rotate)
       }
@@ -155,38 +153,33 @@ export const Edit: React.FC<Props> = (props) => {
         return
       }
 
-      if (state.type === 'start') {
+      if (state.state === 'start') {
         cropRef.current.strokeWidth = 0
         cropRef.current.fill = 'rgba(0, 0, 0, 0.5)'
         cropRef.current.selectable = true
         cropRef.current.visible = true
         cropRef.current.bringToFront()
         fabricRef.current?.setActiveObject(cropRef.current)
-        setCropFlag(true)
         return
       }
 
       cropRef.current.selectable = false
-      let flag = cropFlag
 
-      if (state.type === 'cancel') {
-        flag = false
+      if (state.state === 'none') {
         initCrop()
       }
 
-      if (state.type === 'done') {
-        flag = true
+      if (state.state === 'done') {
         cropRef.current.fill = 'rgba(0, 0, 0, 0)'
         cropRef.current.strokeWidth = 1
         cropRef.current.bringToFront()
         fabricRef.current?.discardActiveObject()
       }
 
-      setCropFlag(flag)
-      saveCropData.current(scale, flag)
+      saveCropData.current(scale, state.cropFlag)
       fabricRef.current?.renderAll()
     },
-    [cropFlag, initCrop, scale]
+    [initCrop, scale]
   )
 
   const handleOnCopyright: EditMenuProps['handleOnCopyright'] = useCallback(
@@ -313,8 +306,8 @@ export const Edit: React.FC<Props> = (props) => {
 
   const handleOnDownload = useCallback(() => {
     saveCropData.current(scale, cropFlag)
-    setModalOpen(true)
-  }, [cropFlag, scale])
+    openModal()
+  }, [cropFlag, openModal, scale])
 
   return (
     <>
@@ -331,10 +324,6 @@ export const Edit: React.FC<Props> = (props) => {
         </Container>
         <EditMenu
           thumb={<Thumb canvas={downloadCanvas} />}
-          scale={scale}
-          rotate={rotate}
-          copyrightFontSize={copyright.fontSize ?? INIT_COPYRIGHT_FONTSIZE}
-          copyrightColor={copyright.fill ?? INIT_COPYRIGHT_FILL}
           handleScaleChange={handleScaleChange}
           handleRotateChange={handleRotateChange}
           handleOnCrop={handleOnCrop}
@@ -343,8 +332,8 @@ export const Edit: React.FC<Props> = (props) => {
           handleOnDownload={handleOnDownload}
         />
         <DownloadDialog
-          open={modalOpen}
-          onClose={() => setModalOpen(false)}
+          open={openModalFlag}
+          onClose={() => closeModal()}
           canvas={downloadCanvas}
           fileName={props.fileName}
         />
