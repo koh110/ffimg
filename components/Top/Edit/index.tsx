@@ -13,9 +13,9 @@ import { useEditValue } from '../../../lib/hooks/edit'
 import { useEditUIValue, useSetEditUIState } from '../../../lib/hooks/edit/ui'
 import { Thumb } from './Thumb'
 
-// テクスチャサイズをデフォルトの2倍にする。動的に変更したい
+// テクスチャサイズの上限をあげる。動的に変更したい
 // image blurなどが2048サイズになってしまうため
-fabric.textureSize = 2048 * 2
+fabric.textureSize = 2048 * 4
 
 type Props = {
   file: string
@@ -316,22 +316,37 @@ export const Edit: React.FC<Props> = (props) => {
   }, [cropFlag, openModal, scale])
 
   const handleOnBlur = useCallback(() => {
-    if (!boundingBoxRef.current || !fabricRef.current || !imageRef.current) {
+    if (!fabricRef.current) {
       return
     }
-    const copiedCanvas = fabricRef.current.toCanvasElement(100 / scale)
+    fabricRef.current?.setZoom(1)
+    const canvasWidth = (fabricRef.current.width ?? 100)
+    const canvasHeight = (fabricRef.current.height ?? 100)
+    console.log(canvasWidth)
+
+    const copiedCanvas = fabricRef.current.toCanvasElement(1, {
+      width: canvasWidth * 2,
+      height: canvasHeight * 2,
+      left: -canvasWidth / 2,
+      top: -canvasHeight / 2
+    })
+    fabricRef.current?.setZoom(100 / scale)
 
     const blurImage = new fabric.Image(copiedCanvas, {
-      width: copiedCanvas.width ? copiedCanvas.width / 2: 100,
-      height: copiedCanvas.height ? copiedCanvas.height / 2 : 100,
+      width: canvasWidth / 2,
+      height: canvasHeight / 2,
+      cropX: canvasWidth / 2,
+      cropY: canvasHeight / 2,
       cornerStyle: 'circle',
       strokeWidth: 1,
       strokeUniform: true,
       objectCaching: false,
-      visible: true
+      visible: true,
+      backgroundColor: 'rgba(255, 255, 255, 0.05)'
     })
+    blurImage.setControlsVisibility({ mtr: false })
     const filter = new (fabric.Image.filters as any).Blur({
-      blur: 0.3
+      blur: 0.2
     })
     blurImage.filters?.push(filter)
     blurImage.applyFilters()
@@ -339,21 +354,27 @@ export const Edit: React.FC<Props> = (props) => {
     fabricRef.current.setActiveObject(blurImage)
 
     const moveBlur = () => {
-      const top = blurImage.top ?? 0
-      const left = blurImage.left ?? 0
       const scaleX = blurImage.scaleX ?? 1
       const scaleY = blurImage.scaleY ?? 1
-      blurImage.cropX = left * scaleX
-      blurImage.cropY = top * scaleY
-      blurImage.width = (blurImage.width ?? 1) * (blurImage.scaleX ?? 1)
-      blurImage.height = (blurImage.height ?? 1) * (blurImage.scaleY ?? 1)
+      const top = blurImage.top ?? 0
+      const left = blurImage.left ?? 0
+      const width = blurImage.width ?? 1
+      const height = blurImage.height ?? 1
+      blurImage.cropX = (left + canvasWidth / 2) * scaleX
+      blurImage.cropY = (top + canvasHeight / 2) * scaleY
+      blurImage.width = width * scaleX
+      blurImage.height = height * scaleY
       blurImage.scaleX = 1
       blurImage.scaleY = 1
       fabricRef.current?.renderAll()
     }
 
-    blurImage.on('moving', () =>  moveBlur())
-    blurImage.on('scaling', () => moveBlur())
+    blurImage.on('moving', (e) => {
+      moveBlur()
+    })
+    blurImage.on('scaling', (e) => {
+      moveBlur()
+    })
   }, [scale])
 
   return (
