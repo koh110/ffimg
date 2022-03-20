@@ -1,4 +1,6 @@
 import React, { useCallback } from 'react'
+import Divider from '@mui/material/Divider'
+import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
 import CropIcon from '@mui/icons-material/Crop'
 import DoneIcon from '@mui/icons-material/Done'
@@ -8,6 +10,7 @@ import { useEditUIValue, useSetEditUIState } from '../../../../lib/hooks/edit/ui
 import { CropHandler } from '../../../../lib/type'
 
 export type Props = {
+  handleOnBlur: () => void
   handleOnCrop: CropHandler
 }
 
@@ -29,12 +32,19 @@ export const EditPanel: React.FC<Props> = (props) => {
     cropRemove(props.handleOnCrop)
   }, [cropRemove, props.handleOnCrop])
 
+  const handleOnBlur = useCallback(() => {
+    props.handleOnBlur()
+  }, [props])
+
   return (
-    <>
+    <Stack spacing={1} divider={<Divider flexItem />}>
+      <Button variant="outlined" onClick={handleOnBlur}>
+        ぼかし
+      </Button>
       <Stack direction="row" spacing={1}>
-        <IconButton color="primary" aria-label="upload picture" component="span" onClick={handleOnCropStart}>
-          <CropIcon />
-        </IconButton>
+        <Button variant="outlined" onClick={handleOnCropStart} startIcon={<CropIcon />}>
+          切り抜く
+        </Button>
         {cropState === 'start' && (
           <IconButton color="primary" aria-label="upload picture" component="span" onClick={handleOnDone}>
             <DoneIcon />
@@ -46,6 +56,6 @@ export const EditPanel: React.FC<Props> = (props) => {
           </IconButton>
         )}
       </Stack>
-    </>
+    </Stack>
   )
 }

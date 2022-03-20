@@ -7,6 +7,7 @@ import Switch, { SwitchProps } from '@mui/material/Switch'
 import { Slider, Props as SliderProps } from '../Slider'
 import { useEditValue, useSetEditState } from '../../../../lib/hooks/edit'
 import { useEditUIValue, useSetEditUIState } from '../../../../lib/hooks/edit/ui'
+import { CropHandler } from '../../../../lib/type'
 
 export type Props = {
   handleScaleChange: SliderProps['handleSliderChange']
@@ -16,13 +17,14 @@ export type Props = {
     fontSize: number,
     color: string | fabric.Pattern | fabric.Gradient
   ) => void
+  handleOnCrop: CropHandler
 }
 
 export const DefaultPanel: React.FC<Props> = (props) => {
   const { scale, rotate, copyrightColor, copyrightFontSize } = useEditValue()
   const { copyrightFlag } = useEditUIValue()
   const { setScale, setRotate, setCopyrightFontSize, setCopyrightColor } = useSetEditState()
-  const { copyrightOn, copyrightOff } = useSetEditUIState()
+  const { copyrightOn, copyrightOff, cropRemove } = useSetEditUIState()
 
   const handleScaleChange = useCallback<SliderProps['handleSliderChange']>(
     (newScale) => {
@@ -36,8 +38,9 @@ export const DefaultPanel: React.FC<Props> = (props) => {
     (newRotate) => {
       setRotate(newRotate)
       props.handleRotateChange(newRotate)
+      cropRemove(props.handleOnCrop)
     },
-    [props, setRotate]
+    [cropRemove, props, setRotate]
   )
 
   const handleOnCopyright = useCallback<Exclude<SwitchProps['onChange'], undefined>>(

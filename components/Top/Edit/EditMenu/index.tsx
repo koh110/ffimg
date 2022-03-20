@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import Divider from '@mui/material/Divider'
 import Paper from '@mui/material/Paper'
 import Box from '@mui/material/Box'
@@ -12,8 +12,6 @@ import Tab from '@mui/material/Tab'
 import { ArrowLeft, ArrowRight, ArrowDropUp, ArrowDropDown } from '@mui/icons-material'
 import { COPYRIGHT_STR } from '../../../../lib/constants'
 import { useSetEditUIState } from '../../../../lib/hooks/edit/ui'
-import { DefaultPanel, Props as DefaultPanelProps } from './DefaultPanel'
-import { EditPanel, Props as EditPaelProps } from './EditPanel'
 
 type Position = {
   top?: React.CSSProperties['top']
@@ -24,10 +22,8 @@ type Position = {
 
 export type Props = {
   thumb: React.ReactNode
-  handleScaleChange: DefaultPanelProps['handleScaleChange']
-  handleRotateChange: DefaultPanelProps['handleRotateChange']
-  handleOnCrop: EditPaelProps['handleOnCrop']
-  handleOnCopyright: DefaultPanelProps['handleOnCopyright']
+  defaultPanel: React.ReactNode
+  editPanel: React.ReactNode
   handleOnDownload: () => void
   handleOnCancel: () => void
 }
@@ -39,14 +35,6 @@ export const EditMenu: React.FC<Props> = (props) => {
     bottom: '2em'
   })
   const [tabValue, setTabValue] = useState<number>(0)
-
-  const handleRotateChange = useCallback(
-    (rotate: number) => {
-      props.handleRotateChange(rotate)
-      cropRemove(props.handleOnCrop)
-    },
-    [cropRemove, props]
-  )
 
   const move = useCallback(
     (arrow: 'left' | 'up' | 'down' | 'right') => {
@@ -126,15 +114,11 @@ export const EditMenu: React.FC<Props> = (props) => {
                 <Tab label="編集" id="menu-tab-1" aria-controls="menu-tabpanel-1" />
               </Tabs>
             </Box>
-            <Box hidden={tabValue !== 0} id="menu-tabpanel-0" aria-labelledby="menu-tab-0" sx={{ pt: 1, pr: 1, pl: 1 }}>
-              <DefaultPanel
-                handleScaleChange={props.handleScaleChange}
-                handleRotateChange={handleRotateChange}
-                handleOnCopyright={props.handleOnCopyright}
-              />
+            <Box hidden={tabValue !== 0} id="menu-tabpanel-0" aria-labelledby="menu-tab-0" sx={{ pt: 2, pr: 1, pl: 1 }}>
+              {props.defaultPanel}
             </Box>
-            <Box hidden={tabValue !== 1} id="menu-tabpanel-1" aria-labelledby="menu-tab-1" sx={{ pt: 1, pr: 1, pl: 1 }}>
-              <EditPanel handleOnCrop={props.handleOnCrop} />
+            <Box hidden={tabValue !== 1} id="menu-tabpanel-1" aria-labelledby="menu-tab-1" sx={{ pt: 2, pr: 1, pl: 1 }}>
+              {props.editPanel}
             </Box>
           </Stack>
           <Stack>

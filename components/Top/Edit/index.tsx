@@ -4,12 +4,18 @@ import debounce from 'lodash.debounce'
 import Container from '@mui/material/Container'
 import Box from '@mui/material/Box'
 import { Head, Header } from '../../Header'
-import { EditMenu, Props as EditMenuProps } from './EditMenu'
+import { EditMenu } from './EditMenu'
+import { DefaultPanel, Props as DefaultPanelProps } from './EditMenu/DefaultPanel'
+import { EditPanel, Props as EditPanelProps } from './EditMenu/EditPanel'
 import { DownloadDialog } from './DownloadDialog'
 import { COPYRIGHT_STR } from '../../../lib/constants'
-import { useEditValue, useSetEditState } from '../../../lib/hooks/edit'
+import { useEditValue } from '../../../lib/hooks/edit'
 import { useEditUIValue, useSetEditUIState } from '../../../lib/hooks/edit/ui'
 import { Thumb } from './Thumb'
+
+// テクスチャサイズをデフォルトの2倍にする。動的に変更したい
+// image blurなどが2048サイズになってしまうため
+fabric.textureSize = 2048 * 2
 
 type Props = {
   file: string
@@ -147,7 +153,7 @@ export const Edit: React.FC<Props> = (props) => {
     fabricRef.current?.discardActiveObject()
   }, [])
 
-  const handleOnCrop: EditMenuProps['handleOnCrop'] = useCallback(
+  const handleOnCrop: EditPanelProps['handleOnCrop'] = useCallback(
     (state) => {
       if (!cropRef.current) {
         return
@@ -182,7 +188,7 @@ export const Edit: React.FC<Props> = (props) => {
     [initCrop, scale]
   )
 
-  const handleOnCopyright: EditMenuProps['handleOnCopyright'] = useCallback(
+  const handleOnCopyright: DefaultPanelProps['handleOnCopyright'] = useCallback(
     (checked, fontSize, color) => {
       if (!copyrightRef.current) {
         return
@@ -309,6 +315,47 @@ export const Edit: React.FC<Props> = (props) => {
     openModal()
   }, [cropFlag, openModal, scale])
 
+  const handleOnBlur = useCallback(() => {
+    if (!boundingBoxRef.current || !fabricRef.current || !imageRef.current) {
+      return
+    }
+    const copiedCanvas = fabricRef.current.toCanvasElement(100 / scale)
+
+    const blurImage = new fabric.Image(copiedCanvas, {
+      width: copiedCanvas.width ? copiedCanvas.width / 2: 100,
+      height: copiedCanvas.height ? copiedCanvas.height / 2 : 100,
+      cornerStyle: 'circle',
+      strokeWidth: 1,
+      strokeUniform: true,
+      objectCaching: false,
+      visible: true
+    })
+    const filter = new (fabric.Image.filters as any).Blur({
+      blur: 0.3
+    })
+    blurImage.filters?.push(filter)
+    blurImage.applyFilters()
+    fabricRef.current.add(blurImage)
+    fabricRef.current.setActiveObject(blurImage)
+
+    const moveBlur = () => {
+      const top = blurImage.top ?? 0
+      const left = blurImage.left ?? 0
+      const scaleX = blurImage.scaleX ?? 1
+      const scaleY = blurImage.scaleY ?? 1
+      blurImage.cropX = left * scaleX
+      blurImage.cropY = top * scaleY
+      blurImage.width = (blurImage.width ?? 1) * (blurImage.scaleX ?? 1)
+      blurImage.height = (blurImage.height ?? 1) * (blurImage.scaleY ?? 1)
+      blurImage.scaleX = 1
+      blurImage.scaleY = 1
+      fabricRef.current?.renderAll()
+    }
+
+    blurImage.on('moving', () =>  moveBlur())
+    blurImage.on('scaling', () => moveBlur())
+  }, [scale])
+
   return (
     <>
       <Head />
@@ -324,10 +371,20 @@ export const Edit: React.FC<Props> = (props) => {
         </Container>
         <EditMenu
           thumb={<Thumb canvas={downloadCanvas} />}
-          handleScaleChange={handleScaleChange}
-          handleRotateChange={handleRotateChange}
-          handleOnCrop={handleOnCrop}
-          handleOnCopyright={handleOnCopyright}
+          defaultPanel={
+            <DefaultPanel
+              handleScaleChange={handleScaleChange}
+              handleRotateChange={handleRotateChange}
+              handleOnCopyright={handleOnCopyright}
+              handleOnCrop={handleOnCrop}
+            />
+          }
+          editPanel={
+            <EditPanel
+              handleOnCrop={handleOnCrop}
+              handleOnBlur={handleOnBlur}
+            />
+          }
           handleOnCancel={props.onBack}
           handleOnDownload={handleOnDownload}
         />
