@@ -319,7 +319,7 @@ export const Edit: React.FC<Props> = (props) => {
     if (!fabricRef.current) {
       return
     }
-    fabricRef.current?.setZoom(1)
+    fabricRef.current.setZoom(1)
     const canvasWidth = (fabricRef.current.width ?? 100)
     const canvasHeight = (fabricRef.current.height ?? 100)
 
@@ -329,7 +329,6 @@ export const Edit: React.FC<Props> = (props) => {
       left: -canvasWidth / 2,
       top: -canvasHeight / 2
     })
-    fabricRef.current?.setZoom(100 / scale)
 
     const blurImage = new fabric.Image(copiedCanvas, {
       width: canvasWidth / 2,
@@ -352,6 +351,9 @@ export const Edit: React.FC<Props> = (props) => {
     blurImage.applyFilters()
     fabricRef.current.add(blurImage)
     fabricRef.current.setActiveObject(blurImage)
+    fabricRef.current.setZoom(100 / scale)
+    fabricRef.current.renderAll()
+    saveCropData.current(scale, cropFlag)
 
     const moveBlur = () => {
       const scaleX = blurImage.scaleX ?? 1
@@ -367,11 +369,12 @@ export const Edit: React.FC<Props> = (props) => {
       blurImage.scaleX = 1
       blurImage.scaleY = 1
       fabricRef.current?.renderAll()
+      saveCropData.current(scale, cropFlag)
     }
 
     blurImage.on('moving', (e) => moveBlur())
     blurImage.on('scaling', (e) => moveBlur())
-  }, [scale])
+  }, [cropFlag, scale])
 
   const handleOnSelectBlur = useCallback<EditPanelProps['handleOnSelectBlur']>((id) => {
     if (!fabricRef.current) {
@@ -394,10 +397,11 @@ export const Edit: React.FC<Props> = (props) => {
     for (const obj of fabricRef.current.getObjects()) {
       if (obj.id === id) {
         fabricRef.current.remove(obj)
+        saveCropData.current(scale, cropFlag)
         break
       }
     }
-  }, [])
+  }, [cropFlag, scale])
 
   return (
     <>
