@@ -27,15 +27,15 @@ export const DefaultTop: React.FC<Props> = (props) => {
             <CardContent>
               {props.file && <img src={props.file} style={{ maxWidth: '100%' }} />}
               {!props.file && <Dropper onLoadFile={props.onLoadFile} />}
-              <CardActions>
-                <Upload onLoadFile={props.onLoadFile} />
-                {props.file && (
-                  <Button variant="contained" onClick={props.onEdit} endIcon={<EditIcon />}>
-                    編集
-                  </Button>
-                )}
-              </CardActions>
             </CardContent>
+            <CardActions sx={{ pt: 0, pl: 2, pr: 2, pb: 2 }}>
+              <Upload onLoadFile={props.onLoadFile} />
+              {props.file && (
+                <Button variant="contained" onClick={props.onEdit} endIcon={<EditIcon />}>
+                  編集
+                </Button>
+              )}
+            </CardActions>
           </Card>
         </Container>
         <footer style={{ padding: '0 1em' }}>{COPYRIGHT_STR}</footer>

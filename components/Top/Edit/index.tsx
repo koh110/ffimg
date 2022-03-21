@@ -322,7 +322,8 @@ export const Edit: React.FC<Props> = (props) => {
     fabricRef.current?.setZoom(1)
     const canvasWidth = (fabricRef.current.width ?? 100)
     const canvasHeight = (fabricRef.current.height ?? 100)
-    console.log(canvasWidth)
+    const max = Math.max(canvasWidth, canvasHeight)
+    const blurScale = max > 2048 ? 2048 / max : 1
 
     const copiedCanvas = fabricRef.current.toCanvasElement(1, {
       width: canvasWidth * 2,
