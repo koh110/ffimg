@@ -315,15 +315,13 @@ export const Edit: React.FC<Props> = (props) => {
     openModal()
   }, [cropFlag, openModal, scale])
 
-  const handleOnBlur = useCallback(() => {
+  const handleOnBlur = useCallback((id) => {
     if (!fabricRef.current) {
       return
     }
     fabricRef.current?.setZoom(1)
     const canvasWidth = (fabricRef.current.width ?? 100)
     const canvasHeight = (fabricRef.current.height ?? 100)
-    const max = Math.max(canvasWidth, canvasHeight)
-    const blurScale = max > 2048 ? 2048 / max : 1
 
     const copiedCanvas = fabricRef.current.toCanvasElement(1, {
       width: canvasWidth * 2,
@@ -345,8 +343,9 @@ export const Edit: React.FC<Props> = (props) => {
       visible: true,
       backgroundColor: 'rgba(255, 255, 255, 0.05)'
     })
+    blurImage.id = id
     blurImage.setControlsVisibility({ mtr: false })
-    const filter = new (fabric.Image.filters as any).Blur({
+    const filter = new fabric.Image.filters.Blur({
       blur: 0.2
     })
     blurImage.filters?.push(filter)
@@ -370,13 +369,35 @@ export const Edit: React.FC<Props> = (props) => {
       fabricRef.current?.renderAll()
     }
 
-    blurImage.on('moving', (e) => {
-      moveBlur()
-    })
-    blurImage.on('scaling', (e) => {
-      moveBlur()
-    })
+    blurImage.on('moving', (e) => moveBlur())
+    blurImage.on('scaling', (e) => moveBlur())
   }, [scale])
+
+  const handleOnSelectBlur = useCallback<EditPanelProps['handleOnSelectBlur']>((id) => {
+    if (!fabricRef.current) {
+      return
+    }
+    for (const obj of fabricRef.current.getObjects()) {
+      if (obj.id === id) {
+        console.log(obj)
+        fabricRef.current.setActiveObject(obj)
+        fabricRef.current.renderAll()
+        break
+      }
+    }
+  }, [])
+
+  const handleOnDeleteBlur = useCallback<EditPanelProps['handleOnDeleteBlur']>((id, number) => {
+    if (!fabricRef.current) {
+      return
+    }
+    for (const obj of fabricRef.current.getObjects()) {
+      if (obj.id === id) {
+        fabricRef.current.remove(obj)
+        break
+      }
+    }
+  }, [])
 
   return (
     <>
@@ -405,6 +426,8 @@ export const Edit: React.FC<Props> = (props) => {
             <EditPanel
               handleOnCrop={handleOnCrop}
               handleOnBlur={handleOnBlur}
+              handleOnSelectBlur={handleOnSelectBlur}
+              handleOnDeleteBlur={handleOnDeleteBlur}
             />
           }
           handleOnCancel={props.onBack}
