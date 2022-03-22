@@ -12,6 +12,7 @@ import { COPYRIGHT_STR } from '../../../lib/constants'
 import { useEditValue } from '../../../lib/hooks/edit'
 import { useEditUIValue, useSetEditUIState } from '../../../lib/hooks/edit/ui'
 import { Thumb } from './Thumb'
+import { useBlur } from './index.hooks'
 
 // テクスチャサイズの上限をあげる。動的に変更したい
 // image blurなどが2048サイズになってしまうため
@@ -39,6 +40,7 @@ export const Edit: React.FC<Props> = (props) => {
   const { scale } = useEditValue()
   const { openModalFlag, cropFlag } = useEditUIValue()
   const { openModal, closeModal } = useSetEditUIState()
+  const { createBlur, moveBlur } = useBlur()
   const fabricRef = useRef<fabric.Canvas>()
   const boundingBoxRef = useRef<fabric.Rect>()
   const cropRef = useRef<fabric.Rect>()
@@ -319,62 +321,24 @@ export const Edit: React.FC<Props> = (props) => {
     if (!fabricRef.current) {
       return
     }
-    fabricRef.current.setZoom(1)
-    const canvasWidth = (fabricRef.current.width ?? 100)
-    const canvasHeight = (fabricRef.current.height ?? 100)
-
-    const copiedCanvas = fabricRef.current.toCanvasElement(1, {
-      width: canvasWidth * 2,
-      height: canvasHeight * 2,
-      left: -canvasWidth / 2,
-      top: -canvasHeight / 2
-    })
-
-    const blurImage = new fabric.Image(copiedCanvas, {
-      width: canvasWidth / 2,
-      height: canvasHeight / 2,
-      cropX: canvasWidth / 2,
-      cropY: canvasHeight / 2,
-      cornerStyle: 'circle',
-      strokeWidth: 1,
-      strokeUniform: true,
-      objectCaching: false,
-      visible: true,
-      backgroundColor: 'rgba(255, 255, 255, 0.05)'
-    })
-    blurImage.id = id
-    blurImage.setControlsVisibility({ mtr: false })
-    const filter = new fabric.Image.filters.Blur({
-      blur: 0.2
-    })
-    blurImage.filters?.push(filter)
-    blurImage.applyFilters()
-    fabricRef.current.add(blurImage)
-    fabricRef.current.setActiveObject(blurImage)
-    fabricRef.current.setZoom(100 / scale)
-    fabricRef.current.renderAll()
+    const blurImage = createBlur(fabricRef.current, id)
     saveCropData.current(scale, cropFlag)
 
-    const moveBlur = () => {
-      const scaleX = blurImage.scaleX ?? 1
-      const scaleY = blurImage.scaleY ?? 1
-      const top = blurImage.top ?? 0
-      const left = blurImage.left ?? 0
-      const width = blurImage.width ?? 1
-      const height = blurImage.height ?? 1
-      blurImage.cropX = (left + canvasWidth / 2) * scaleX
-      blurImage.cropY = (top + canvasHeight / 2) * scaleY
-      blurImage.width = width * scaleX
-      blurImage.height = height * scaleY
-      blurImage.scaleX = 1
-      blurImage.scaleY = 1
-      fabricRef.current?.renderAll()
+    blurImage.on('moving', () => {
+      if (!fabricRef.current) {
+        return
+      }
+      moveBlur(fabricRef.current, blurImage)
       saveCropData.current(scale, cropFlag)
-    }
-
-    blurImage.on('moving', (e) => moveBlur())
-    blurImage.on('scaling', (e) => moveBlur())
-  }, [cropFlag, scale])
+    })
+    blurImage.on('scaling', () => {
+      if (!fabricRef.current) {
+        return
+      }
+      moveBlur(fabricRef.current, blurImage)
+      saveCropData.current(scale, cropFlag)
+    })
+  }, [createBlur, cropFlag, moveBlur, scale])
 
   const handleOnSelectBlur = useCallback<EditPanelProps['handleOnSelectBlur']>((id) => {
     if (!fabricRef.current) {
@@ -382,7 +346,6 @@ export const Edit: React.FC<Props> = (props) => {
     }
     for (const obj of fabricRef.current.getObjects()) {
       if (obj.id === id) {
-        console.log(obj)
         fabricRef.current.setActiveObject(obj)
         fabricRef.current.renderAll()
         break
