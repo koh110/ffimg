@@ -189,23 +189,29 @@ export const Edit: React.FC<Props> = (props) => {
     [initCrop, scale]
   )
 
-  const onChangeCopyrightFontSize = useCallback<DefaultPanelProps['onChangeCopyrightFontSize']>((fontSize) => {
-    if (!copyrightRef.current) {
-      return
-    }
-    copyrightRef.current.set({ fontSize }).setCoords()
-    fabricRef.current?.renderAll()
-    saveCropData.current(scale, cropFlag)
-  }, [cropFlag, scale])
+  const onChangeCopyrightFontSize = useCallback<DefaultPanelProps['onChangeCopyrightFontSize']>(
+    (fontSize) => {
+      if (!copyrightRef.current) {
+        return
+      }
+      copyrightRef.current.set({ fontSize }).setCoords()
+      fabricRef.current?.renderAll()
+      saveCropData.current(scale, cropFlag)
+    },
+    [cropFlag, scale]
+  )
 
-  const onChangeCopyrightColor = useCallback<DefaultPanelProps['onChangeCopyrightColor']>((color) => {
-    if (!copyrightRef.current) {
-      return
-    }
-    copyrightRef.current.set({ fill: color }).setCoords()
-    fabricRef.current?.renderAll()
-    saveCropData.current(scale, cropFlag)
-  }, [cropFlag, scale])
+  const onChangeCopyrightColor = useCallback<DefaultPanelProps['onChangeCopyrightColor']>(
+    (color) => {
+      if (!copyrightRef.current) {
+        return
+      }
+      copyrightRef.current.set({ fill: color }).setCoords()
+      fabricRef.current?.renderAll()
+      saveCropData.current(scale, cropFlag)
+    },
+    [cropFlag, scale]
+  )
 
   const onChangeCopyright = useCallback<DefaultPanelProps['onChangeCopyright']>(
     (checked) => {

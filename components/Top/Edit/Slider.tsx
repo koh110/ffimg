@@ -22,31 +22,37 @@ export const Slider: React.FC<Props> = (props) => {
   const value = useMemo(() => {
     return props.value
   }, [props.value])
-  const handleSliderChange: Parameters<typeof MuiSlider>[0]['onChange'] = useCallback((event, newValue) => {
-    const val = newValue as number
-    if (val < props.min) {
-      props.handleSliderChange(props.min)
-      return
-    }
-    if (val > props.max) {
-      props.handleSliderChange(props.max)
-      return
-    }
-    props.handleSliderChange(val)
-  }, [props])
+  const handleSliderChange: Parameters<typeof MuiSlider>[0]['onChange'] = useCallback(
+    (event, newValue) => {
+      const val = newValue as number
+      if (val < props.min) {
+        props.handleSliderChange(props.min)
+        return
+      }
+      if (val > props.max) {
+        props.handleSliderChange(props.max)
+        return
+      }
+      props.handleSliderChange(val)
+    },
+    [props]
+  )
 
-  const handleInputChange: Parameters<typeof MuiInput>[0]['onChange'] = useCallback((event) => {
-    if (event.target.value === '') {
-      props.handleSliderChange(props.max)
-      return
-    }
-    const val = Number(event.target.value)
-    if (val < props.min) {
-      props.handleSliderChange(props.min)
-      return
-    }
-    props.handleSliderChange(val)
-  }, [props])
+  const handleInputChange: Parameters<typeof MuiInput>[0]['onChange'] = useCallback(
+    (event) => {
+      if (event.target.value === '') {
+        props.handleSliderChange(props.max)
+        return
+      }
+      const val = Number(event.target.value)
+      if (val < props.min) {
+        props.handleSliderChange(props.min)
+        return
+      }
+      props.handleSliderChange(val)
+    },
+    [props]
+  )
 
   const handleBlur = useCallback(() => {
     if (props.value < props.min) {

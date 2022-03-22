@@ -30,10 +30,13 @@ export const Shape: React.FC<Props> = (props) => {
     props.handleOnAddShape(id, shapeColor)
   }, [addShape, props, shapeColor])
 
-  const handleOnChangeColorShape = useCallback<NonNullable<InputColorProps['onChange']>>((color) => {
-    setShapeColor(color)
-    props.handleOnChangeColorShape(color)
-  }, [props, setShapeColor])
+  const handleOnChangeColorShape = useCallback<NonNullable<InputColorProps['onChange']>>(
+    (color) => {
+      setShapeColor(color)
+      props.handleOnChangeColorShape(color)
+    },
+    [props, setShapeColor]
+  )
 
   const handleOnDeleteShape = useCallback<Props['handleOnDeleteShape']>(
     (id, number) => {
@@ -43,10 +46,13 @@ export const Shape: React.FC<Props> = (props) => {
     [props, removeShape]
   )
 
-  const handleOnChangeOpacityShape = useCallback<SliderProps['handleSliderChange']>((opacity) => {
-    setShapeOpacity(opacity)
-    props.handleOnChangeOpacityShape(opacity)
-  }, [props, setShapeOpacity])
+  const handleOnChangeOpacityShape = useCallback<SliderProps['handleSliderChange']>(
+    (opacity) => {
+      setShapeOpacity(opacity)
+      props.handleOnChangeOpacityShape(opacity)
+    },
+    [props, setShapeOpacity]
+  )
 
   return (
     <Stack direction="column" spacing={1}>
@@ -54,11 +60,7 @@ export const Shape: React.FC<Props> = (props) => {
         <Button variant="outlined" onClick={add}>
           四角
         </Button>
-        <InputColor
-          disabled={false}
-          value={shapeColor}
-          onChange={handleOnChangeColorShape}
-        />
+        <InputColor disabled={false} value={shapeColor} onChange={handleOnChangeColorShape} />
         <Slider
           value={shapeOpacity}
           min={0.1}
