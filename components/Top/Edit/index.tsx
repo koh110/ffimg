@@ -46,7 +46,6 @@ export const Edit: React.FC<Props> = (props) => {
   const cropRef = useRef<fabric.Rect>()
   const imageRef = useRef<fabric.Image>()
   const copyrightRef = useRef<fabric.Text>()
-  const [copyright, setCopyrightState] = useState({ ...INIT_COPYRIGHT })
   const imgDomRef = useRef<HTMLImageElement>(null)
   const [downloadCanvas, setDownloadCanvas] = useState<HTMLCanvasElement>()
 
@@ -107,14 +106,14 @@ export const Edit: React.FC<Props> = (props) => {
     imageRef.current.viewportCenter().setCoords()
   }, [])
 
-  const handleScaleChange = useCallback(
+  const onChangeScale = useCallback(
     (newScale: number) => {
       setCanvasSize(newScale)
     },
     [setCanvasSize]
   )
 
-  const handleRotateChange = useCallback(
+  const onChangeRotate = useCallback(
     (_rotate: number) => {
       if (imageRef.current) {
         imageRef.current.rotate(_rotate)
@@ -190,32 +189,43 @@ export const Edit: React.FC<Props> = (props) => {
     [initCrop, scale]
   )
 
-  const handleOnCopyright: DefaultPanelProps['handleOnCopyright'] = useCallback(
-    (checked, fontSize, color) => {
+  const onChangeCopyrightFontSize = useCallback<DefaultPanelProps['onChangeCopyrightFontSize']>((fontSize) => {
+    if (!copyrightRef.current) {
+      return
+    }
+    copyrightRef.current.set({ fontSize }).setCoords()
+    fabricRef.current?.renderAll()
+    saveCropData.current(scale, cropFlag)
+  }, [cropFlag, scale])
+
+  const onChangeCopyrightColor = useCallback<DefaultPanelProps['onChangeCopyrightColor']>((color) => {
+    if (!copyrightRef.current) {
+      return
+    }
+    copyrightRef.current.set({ fill: color }).setCoords()
+    fabricRef.current?.renderAll()
+    saveCropData.current(scale, cropFlag)
+  }, [cropFlag, scale])
+
+  const onChangeCopyright = useCallback<DefaultPanelProps['onChangeCopyright']>(
+    (checked) => {
       if (!copyrightRef.current) {
         return
       }
 
       if (!checked) {
-        copyrightRef.current.selectable = false
-        copyrightRef.current.visible = false
+        copyrightRef.current.set({
+          selectable: false,
+          visible: false
+        })
         fabricRef.current?.discardActiveObject()
         fabricRef.current?.renderAll()
         saveCropData.current(scale, cropFlag)
         return
       }
 
-      setCopyrightState({
-        ...copyright,
-        fontSize,
-        fill: color
-      })
-
       copyrightRef.current.set({
-        left: 0,
-        top: 0,
-        fontSize: fontSize,
-        fill: color,
+        ...INIT_COPYRIGHT,
         selectable: true,
         visible: true
       })
@@ -233,7 +243,7 @@ export const Edit: React.FC<Props> = (props) => {
       fabricRef.current?.renderAll()
       saveCropData.current(scale, cropFlag)
     },
-    [copyright, cropFlag, scale]
+    [cropFlag, scale]
   )
 
   const ref = useCallback((node) => {
@@ -432,10 +442,12 @@ export const Edit: React.FC<Props> = (props) => {
           thumb={<Thumb canvas={downloadCanvas} />}
           defaultPanel={
             <DefaultPanel
-              handleScaleChange={handleScaleChange}
-              handleRotateChange={handleRotateChange}
-              handleOnCopyright={handleOnCopyright}
-              handleOnCrop={handleOnCrop}
+              onChangeScale={onChangeScale}
+              onChangeRotate={onChangeRotate}
+              onChangeCopyright={onChangeCopyright}
+              onChangeCopyrightFontSize={onChangeCopyrightFontSize}
+              onChangeCopyrightColor={onChangeCopyrightColor}
+              onChangeCrop={handleOnCrop}
             />
           }
           editPanel={

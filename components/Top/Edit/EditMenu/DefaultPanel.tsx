@@ -10,14 +10,12 @@ import { InputColor, Props as InputColorProps } from '../../../InputColor'
 import { CropHandler } from '../../../../lib/type'
 
 export type Props = {
-  handleScaleChange: SliderProps['handleSliderChange']
-  handleRotateChange: SliderProps['handleSliderChange']
-  handleOnCopyright: (
-    copyrightFlag: boolean,
-    fontSize: number,
-    color: string | fabric.Pattern | fabric.Gradient
-  ) => void
-  handleOnCrop: CropHandler
+  onChangeScale: SliderProps['handleSliderChange']
+  onChangeRotate: SliderProps['handleSliderChange']
+  onChangeCopyright: (copyrightFlag: boolean) => void
+  onChangeCopyrightFontSize: (fontSize: number) => void
+  onChangeCopyrightColor: (color: string) => void
+  onChangeCrop: CropHandler
 }
 
 export const DefaultPanel: React.FC<Props> = (props) => {
@@ -29,7 +27,7 @@ export const DefaultPanel: React.FC<Props> = (props) => {
   const handleScaleChange = useCallback<SliderProps['handleSliderChange']>(
     (newScale) => {
       setScale(newScale)
-      props.handleScaleChange(newScale)
+      props.onChangeScale(newScale)
     },
     [props, setScale]
   )
@@ -37,38 +35,38 @@ export const DefaultPanel: React.FC<Props> = (props) => {
   const handleRotateChange = useCallback<SliderProps['handleSliderChange']>(
     (newRotate) => {
       setRotate(newRotate)
-      props.handleRotateChange(newRotate)
-      cropRemove(props.handleOnCrop)
+      props.onChangeRotate(newRotate)
+      cropRemove(props.onChangeCrop)
     },
     [cropRemove, props, setRotate]
   )
 
-  const handleOnCopyright = useCallback<NonNullable<SwitchProps['onChange']>>(
+  const onChangeCopyright = useCallback<NonNullable<SwitchProps['onChange']>>(
     (e, checked) => {
       if (checked) {
         copyrightOn()
       } else {
         copyrightOff()
       }
-      props.handleOnCopyright(checked, copyrightFontSize, copyrightColor)
+      props.onChangeCopyright(checked)
     },
-    [copyrightColor, copyrightFontSize, copyrightOff, copyrightOn, props]
+    [copyrightOff, copyrightOn, props]
   )
 
   const handleOnSliderCopyright = useCallback<NonNullable<SliderProps['handleSliderChange']>>(
     (val) => {
       setCopyrightFontSize(val)
-      props.handleOnCopyright(copyrightFlag, val, copyrightColor)
+      props.onChangeCopyrightFontSize(val)
     },
-    [copyrightColor, copyrightFlag, props, setCopyrightFontSize]
+    [props, setCopyrightFontSize]
   )
 
-  const handleOnChangeColorCopyright = useCallback<NonNullable<InputColorProps['onChange']>>(
+  const onChangeCopyrightColor = useCallback<NonNullable<InputColorProps['onChange']>>(
     (color) => {
       setCopyrightColor(color)
-      props.handleOnCopyright(copyrightFlag, copyrightFontSize, color)
+      props.onChangeCopyrightColor(color)
     },
-    [copyrightFlag, copyrightFontSize, props, setCopyrightColor]
+    [props, setCopyrightColor]
   )
 
   return (
@@ -94,8 +92,8 @@ export const DefaultPanel: React.FC<Props> = (props) => {
       <Box>
         <Stack direction="row" alignItems="center" spacing={2}>
           <CopyrightIcon />
-          <Switch onChange={handleOnCopyright} />
-          <InputColor disabled={!copyrightFlag} value={copyrightColor} onChange={handleOnChangeColorCopyright} />
+          <Switch onChange={onChangeCopyright} />
+          <InputColor disabled={!copyrightFlag} value={copyrightColor} onChange={onChangeCopyrightColor} />
         </Stack>
         <Slider
           disabled={!copyrightFlag}
