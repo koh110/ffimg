@@ -317,28 +317,31 @@ export const Edit: React.FC<Props> = (props) => {
     openModal()
   }, [cropFlag, openModal, scale])
 
-  const handleOnBlur = useCallback((id) => {
-    if (!fabricRef.current) {
-      return
-    }
-    const blurImage = createBlur(fabricRef.current, id)
-    saveCropData.current(scale, cropFlag)
+  const handleOnBlur = useCallback(
+    (id) => {
+      if (!fabricRef.current) {
+        return
+      }
+      const blurImage = createBlur(fabricRef.current, id)
+      saveCropData.current(scale, cropFlag)
 
-    blurImage.on('moving', () => {
-      if (!fabricRef.current) {
-        return
-      }
-      moveBlur(fabricRef.current, blurImage)
-      saveCropData.current(scale, cropFlag)
-    })
-    blurImage.on('scaling', () => {
-      if (!fabricRef.current) {
-        return
-      }
-      moveBlur(fabricRef.current, blurImage)
-      saveCropData.current(scale, cropFlag)
-    })
-  }, [createBlur, cropFlag, moveBlur, scale])
+      blurImage.on('moving', () => {
+        if (!fabricRef.current) {
+          return
+        }
+        moveBlur(fabricRef.current, blurImage)
+        saveCropData.current(scale, cropFlag)
+      })
+      blurImage.on('scaling', () => {
+        if (!fabricRef.current) {
+          return
+        }
+        moveBlur(fabricRef.current, blurImage)
+        saveCropData.current(scale, cropFlag)
+      })
+    },
+    [createBlur, cropFlag, moveBlur, scale]
+  )
 
   const handleOnSelectBlur = useCallback<EditPanelProps['handleOnSelectBlur']>((id) => {
     if (!fabricRef.current) {
@@ -353,18 +356,21 @@ export const Edit: React.FC<Props> = (props) => {
     }
   }, [])
 
-  const handleOnDeleteBlur = useCallback<EditPanelProps['handleOnDeleteBlur']>((id, number) => {
-    if (!fabricRef.current) {
-      return
-    }
-    for (const obj of fabricRef.current.getObjects()) {
-      if (obj.id === id) {
-        fabricRef.current.remove(obj)
-        saveCropData.current(scale, cropFlag)
-        break
+  const handleOnDeleteBlur = useCallback<EditPanelProps['handleOnDeleteBlur']>(
+    (id, number) => {
+      if (!fabricRef.current) {
+        return
       }
-    }
-  }, [cropFlag, scale])
+      for (const obj of fabricRef.current.getObjects()) {
+        if (obj.id === id) {
+          fabricRef.current.remove(obj)
+          saveCropData.current(scale, cropFlag)
+          break
+        }
+      }
+    },
+    [cropFlag, scale]
+  )
 
   return (
     <>

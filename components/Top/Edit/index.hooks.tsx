@@ -7,8 +7,8 @@ export const useBlur = () => {
     const zoom = canvas.getZoom()
 
     canvas.setZoom(1)
-    const canvasWidth = (canvas.width ?? 100)
-    const canvasHeight = (canvas.height ?? 100)
+    const canvasWidth = canvas.width ?? 100
+    const canvasHeight = canvas.height ?? 100
 
     const copiedCanvas = canvas.toCanvasElement(1, {
       width: canvasWidth * 2,
@@ -44,24 +44,26 @@ export const useBlur = () => {
 
     return blurImage
   }, [])
-  
-  const moveBlur = useRef(throttle((canvas: fabric.Canvas, image: fabric.Image) => {
-    const canvasWidth = (canvas.width ?? 100)
-    const canvasHeight = (canvas.height ?? 100)
-    const scaleX = image.scaleX ?? 1
-    const scaleY = image.scaleY ?? 1
-    const top = image.top ?? 0
-    const left = image.left ?? 0
-    const width = image.width ?? 1
-    const height = image.height ?? 1
-    image.cropX = (left + canvasWidth / 2) * scaleX
-    image.cropY = (top + canvasHeight / 2) * scaleY
-    image.width = width * scaleX
-    image.height = height * scaleY
-    image.scaleX = 1
-    image.scaleY = 1
-    canvas.renderAll()
-  }, 10))
+
+  const moveBlur = useRef(
+    throttle((canvas: fabric.Canvas, image: fabric.Image) => {
+      const canvasWidth = canvas.width ?? 100
+      const canvasHeight = canvas.height ?? 100
+      const scaleX = image.scaleX ?? 1
+      const scaleY = image.scaleY ?? 1
+      const top = image.top ?? 0
+      const left = image.left ?? 0
+      const width = image.width ?? 1
+      const height = image.height ?? 1
+      image.cropX = (left + canvasWidth / 2) * scaleX
+      image.cropY = (top + canvasHeight / 2) * scaleY
+      image.width = width * scaleX
+      image.height = height * scaleY
+      image.scaleX = 1
+      image.scaleY = 1
+      canvas.renderAll()
+    }, 10)
+  )
 
   return {
     createBlur,

@@ -36,7 +36,9 @@ export const Thumb: React.FC<Props> = (props) => {
       <Box component="div">
         <img src={dataUrl} style={{ maxWidth: '400px', maxHeight: '200px' }} onLoad={onLoad} />
       </Box>
-      <Typography variant="caption">{width} x {height}</Typography>
+      <Typography variant="caption">
+        {width} x {height}
+      </Typography>
     </Stack>
   )
 }
