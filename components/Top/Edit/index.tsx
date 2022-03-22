@@ -49,7 +49,7 @@ export const Edit: React.FC<Props> = (props) => {
   const imgDomRef = useRef<HTMLImageElement>(null)
   const [downloadCanvas, setDownloadCanvas] = useState<HTMLCanvasElement>()
 
-  const saveCropData = useRef(
+  const debounceSaveCropData = useRef(
     debounce((newScale: number, crop: boolean) => {
       if (!fabricRef.current) {
         return
@@ -79,6 +79,10 @@ export const Edit: React.FC<Props> = (props) => {
       fabricRef.current?.setZoom(newScale / 100)
     }, 100)
   )
+
+  const saveCropData = useCallback(() => {
+    debounceSaveCropData.current(scale, cropFlag)
+  }, [cropFlag, scale])
 
   const setCanvasSize = useCallback((_scale: number) => {
     if (!imageRef.current) {
@@ -120,9 +124,9 @@ export const Edit: React.FC<Props> = (props) => {
       }
       setCanvasSize(scale)
       fabricRef.current?.renderAll()
-      saveCropData.current(scale, cropFlag)
+      saveCropData()
     },
-    [cropFlag, scale, setCanvasSize]
+    [saveCropData, scale, setCanvasSize]
   )
 
   const initCrop = useCallback(() => {
@@ -183,10 +187,10 @@ export const Edit: React.FC<Props> = (props) => {
         fabricRef.current?.discardActiveObject()
       }
 
-      saveCropData.current(scale, state.cropFlag)
+      saveCropData()
       fabricRef.current?.renderAll()
     },
-    [initCrop, scale]
+    [initCrop, saveCropData]
   )
 
   const onChangeCopyrightFontSize = useCallback<DefaultPanelProps['onChangeCopyrightFontSize']>(
@@ -196,9 +200,9 @@ export const Edit: React.FC<Props> = (props) => {
       }
       copyrightRef.current.set({ fontSize }).setCoords()
       fabricRef.current?.renderAll()
-      saveCropData.current(scale, cropFlag)
+      saveCropData()
     },
-    [cropFlag, scale]
+    [saveCropData]
   )
 
   const onChangeCopyrightColor = useCallback<DefaultPanelProps['onChangeCopyrightColor']>(
@@ -208,9 +212,9 @@ export const Edit: React.FC<Props> = (props) => {
       }
       copyrightRef.current.set({ fill: color }).setCoords()
       fabricRef.current?.renderAll()
-      saveCropData.current(scale, cropFlag)
+      saveCropData()
     },
-    [cropFlag, scale]
+    [saveCropData]
   )
 
   const onChangeCopyright = useCallback<DefaultPanelProps['onChangeCopyright']>(
@@ -226,7 +230,7 @@ export const Edit: React.FC<Props> = (props) => {
         })
         fabricRef.current?.discardActiveObject()
         fabricRef.current?.renderAll()
-        saveCropData.current(scale, cropFlag)
+        saveCropData()
         return
       }
 
@@ -247,9 +251,9 @@ export const Edit: React.FC<Props> = (props) => {
       copyrightRef.current.bringToFront()
       fabricRef.current?.setActiveObject(copyrightRef.current)
       fabricRef.current?.renderAll()
-      saveCropData.current(scale, cropFlag)
+      saveCropData()
     },
-    [cropFlag, scale]
+    [cropFlag, saveCropData]
   )
 
   const ref = useCallback((node) => {
@@ -258,6 +262,7 @@ export const Edit: React.FC<Props> = (props) => {
         isDrawingMode: false,
         backgroundColor: 'rgba(255, 255, 255, 0.05)'
       })
+      f.on('object:moving', () => saveCropData())
       f.setDimensions({
         width: '400',
         height: '400'
@@ -317,9 +322,9 @@ export const Edit: React.FC<Props> = (props) => {
       initCrop()
     }
 
-    saveCropData.current(scale, cropFlag)
+    saveCropData()
     fabricRef.current.renderAll()
-  }, [cropFlag, initCrop, scale, setCanvasSize])
+  }, [initCrop, saveCropData, scale, setCanvasSize])
 
   useEffect(() => {
     if (!imgDomRef.current) {
@@ -329,9 +334,9 @@ export const Edit: React.FC<Props> = (props) => {
   }, [props.file])
 
   const handleOnDownload = useCallback(() => {
-    saveCropData.current(scale, cropFlag)
+    saveCropData()
     openModal()
-  }, [cropFlag, openModal, scale])
+  }, [openModal, saveCropData])
 
   const handleOnBlur = useCallback<EditPanelProps['handleOnBlur']>(
     (id) => {
@@ -339,24 +344,22 @@ export const Edit: React.FC<Props> = (props) => {
         return
       }
       const blurImage = createBlur(fabricRef.current, id)
-      saveCropData.current(scale, cropFlag)
+      saveCropData()
 
       blurImage.on('moving', () => {
         if (!fabricRef.current) {
           return
         }
         moveBlur(fabricRef.current, blurImage)
-        saveCropData.current(scale, cropFlag)
       })
       blurImage.on('scaling', () => {
         if (!fabricRef.current) {
           return
         }
         moveBlur(fabricRef.current, blurImage)
-        saveCropData.current(scale, cropFlag)
       })
     },
-    [createBlur, cropFlag, moveBlur, scale]
+    [createBlur, moveBlur, saveCropData]
   )
 
   const handleOnSelectById = useCallback((id: string) => {
@@ -380,12 +383,12 @@ export const Edit: React.FC<Props> = (props) => {
       for (const obj of fabricRef.current.getObjects()) {
         if (obj.id === id) {
           fabricRef.current.remove(obj)
-          saveCropData.current(scale, cropFlag)
+          saveCropData()
           break
         }
       }
     },
-    [cropFlag, scale]
+    [saveCropData]
   )
 
   const handleOnShape = useCallback<EditPanelProps['handleOnShape']>(
@@ -406,9 +409,9 @@ export const Edit: React.FC<Props> = (props) => {
       fabricRef.current.add(rect)
       fabricRef.current.renderAll()
 
-      saveCropData.current(scale, cropFlag)
+      saveCropData()
     },
-    [cropFlag, scale]
+    [saveCropData]
   )
 
   const handleOnChangeColorShape = useCallback<EditPanelProps['handleOnChangeColorShape']>((color) => {
