@@ -317,7 +317,7 @@ export const Edit: React.FC<Props> = (props) => {
     openModal()
   }, [cropFlag, openModal, scale])
 
-  const handleOnBlur = useCallback(
+  const handleOnBlur = useCallback<EditPanelProps['handleOnBlur']>(
     (id) => {
       if (!fabricRef.current) {
         return
@@ -343,7 +343,7 @@ export const Edit: React.FC<Props> = (props) => {
     [createBlur, cropFlag, moveBlur, scale]
   )
 
-  const handleOnSelectBlur = useCallback<EditPanelProps['handleOnSelectBlur']>((id) => {
+  const handleOnSelectById = useCallback((id: string) => {
     if (!fabricRef.current) {
       return
     }
@@ -356,8 +356,8 @@ export const Edit: React.FC<Props> = (props) => {
     }
   }, [])
 
-  const handleOnDeleteBlur = useCallback<EditPanelProps['handleOnDeleteBlur']>(
-    (id, number) => {
+  const handleOnDeletebyId = useCallback(
+    (id) => {
       if (!fabricRef.current) {
         return
       }
@@ -371,6 +371,49 @@ export const Edit: React.FC<Props> = (props) => {
     },
     [cropFlag, scale]
   )
+
+  const handleOnShape = useCallback<EditPanelProps['handleOnShape']>(
+    (id, color) => {
+      if (!fabricRef.current) {
+        return
+      }
+      const rect = new fabric.Rect({
+        fill: color,
+        width: fabricRef.current.getWidth() / 4,
+        height: fabricRef.current.getHeight() / 4,
+        cornerStyle: 'circle',
+        strokeUniform: true
+      })
+      rect.id = id
+      rect.bringToFront()
+      rect.viewportCenter().setCoords()
+      fabricRef.current.add(rect)
+      fabricRef.current.renderAll()
+
+      saveCropData.current(scale, cropFlag)
+    },
+    [cropFlag, scale]
+  )
+
+  const handleOnChangeColorShape = useCallback<EditPanelProps['handleOnChangeColorShape']>((color) => {
+    if (!fabricRef.current) {
+      return
+    }
+    for (const obj of fabricRef.current.getActiveObjects()) {
+      obj.set({ fill: color }).setCoords()
+    }
+    fabricRef.current?.renderAll()
+  }, [])
+
+  const handleOnChangeOpacityShape = useCallback<EditPanelProps['handleOnChangeOpacityShape']>((opacity) => {
+    if (!fabricRef.current) {
+      return
+    }
+    for (const obj of fabricRef.current.getActiveObjects()) {
+      obj.set({ opacity }).setCoords()
+    }
+    fabricRef.current?.renderAll()
+  }, [])
 
   return (
     <>
@@ -399,8 +442,13 @@ export const Edit: React.FC<Props> = (props) => {
             <EditPanel
               handleOnCrop={handleOnCrop}
               handleOnBlur={handleOnBlur}
-              handleOnSelectBlur={handleOnSelectBlur}
-              handleOnDeleteBlur={handleOnDeleteBlur}
+              handleOnSelectBlur={handleOnSelectById}
+              handleOnDeleteBlur={handleOnDeletebyId}
+              handleOnShape={handleOnShape}
+              handleOnChangeColorShape={handleOnChangeColorShape}
+              handleOnChangeOpacityShape={handleOnChangeOpacityShape}
+              handleOnSelectShape={handleOnSelectById}
+              handleOnDeleteShape={handleOnDeletebyId}
             />
           }
           handleOnCancel={props.onBack}

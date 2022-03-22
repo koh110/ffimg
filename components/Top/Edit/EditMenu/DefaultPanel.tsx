@@ -2,11 +2,11 @@ import React, { useCallback } from 'react'
 import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
 import CopyrightIcon from '@mui/icons-material/Copyright'
-import MuiInput, { InputProps } from '@mui/material/Input'
 import Switch, { SwitchProps } from '@mui/material/Switch'
 import { Slider, Props as SliderProps } from '../Slider'
 import { useEditValue, useSetEditState } from '../../../../lib/hooks/edit'
 import { useEditUIValue, useSetEditUIState } from '../../../../lib/hooks/edit/ui'
+import { InputColor, Props as InputColorProps } from '../../../InputColor'
 import { CropHandler } from '../../../../lib/type'
 
 export type Props = {
@@ -43,7 +43,7 @@ export const DefaultPanel: React.FC<Props> = (props) => {
     [cropRemove, props, setRotate]
   )
 
-  const handleOnCopyright = useCallback<Exclude<SwitchProps['onChange'], undefined>>(
+  const handleOnCopyright = useCallback<NonNullable<SwitchProps['onChange']>>(
     (e, checked) => {
       if (checked) {
         copyrightOn()
@@ -55,7 +55,7 @@ export const DefaultPanel: React.FC<Props> = (props) => {
     [copyrightColor, copyrightFontSize, copyrightOff, copyrightOn, props]
   )
 
-  const handleOnSliderCopyright = useCallback<Exclude<SliderProps['handleSliderChange'], undefined>>(
+  const handleOnSliderCopyright = useCallback<NonNullable<SliderProps['handleSliderChange']>>(
     (val) => {
       setCopyrightFontSize(val)
       props.handleOnCopyright(copyrightFlag, val, copyrightColor)
@@ -63,9 +63,8 @@ export const DefaultPanel: React.FC<Props> = (props) => {
     [copyrightColor, copyrightFlag, props, setCopyrightFontSize]
   )
 
-  const handleOnChangeColorCopyright = useCallback<Exclude<InputProps['onChange'], undefined>>(
-    (e) => {
-      const color = e.currentTarget.value
+  const handleOnChangeColorCopyright = useCallback<NonNullable<InputColorProps['onChange']>>(
+    (color) => {
       setCopyrightColor(color)
       props.handleOnCopyright(copyrightFlag, copyrightFontSize, color)
     },
@@ -96,13 +95,7 @@ export const DefaultPanel: React.FC<Props> = (props) => {
         <Stack direction="row" alignItems="center" spacing={2}>
           <CopyrightIcon />
           <Switch onChange={handleOnCopyright} />
-          <MuiInput
-            disabled={!copyrightFlag}
-            type="color"
-            sx={{ width: '2em' }}
-            value={copyrightColor}
-            onChange={handleOnChangeColorCopyright}
-          />
+          <InputColor disabled={!copyrightFlag} value={copyrightColor} onChange={handleOnChangeColorCopyright} />
         </Stack>
         <Slider
           disabled={!copyrightFlag}

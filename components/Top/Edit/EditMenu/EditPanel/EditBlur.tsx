@@ -6,6 +6,7 @@ import ListItemButton from '@mui/material/ListItemButton'
 import ListItemText from '@mui/material/ListItemText'
 import DeleteIcon from '@mui/icons-material/Delete'
 import IconButton from '@mui/material/IconButton'
+import { createRandomId } from '../../../../../lib/util'
 import { useEditValue, useSetEditState } from '../../../../../lib/hooks/edit'
 
 export type Props = {
@@ -19,7 +20,7 @@ export const EditBlur: React.FC<Props> = (props) => {
   const { addBlur, removeBlur } = useSetEditState()
 
   const handleOnBlur = useCallback(() => {
-    const id = window.crypto.randomUUID ? window.crypto.randomUUID() : `${Math.random() * Number.MAX_VALUE}`
+    const id = createRandomId()
     addBlur(id)
     props.handleOnBlur(id)
   }, [addBlur, props])
@@ -42,6 +43,7 @@ export const EditBlur: React.FC<Props> = (props) => {
           return (
             <ListItem
               key={e}
+              dense={true}
               secondaryAction={
                 <IconButton color="primary" component="span" onClick={() => handleOnDeleteBlur(e, i)}>
                   <DeleteIcon />

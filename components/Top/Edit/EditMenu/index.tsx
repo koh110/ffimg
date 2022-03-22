@@ -68,7 +68,7 @@ export const EditMenu: React.FC<Props> = (props) => {
     [menuPosition]
   )
 
-  const handleTabChange = useCallback<Exclude<TabsProps['onChange'], undefined>>((e, val) => {
+  const handleTabChange = useCallback<NonNullable<TabsProps['onChange']>>((e, val) => {
     setTabValue(val)
   }, [])
 
