@@ -4,10 +4,19 @@ import debounce from 'lodash.debounce'
 import Container from '@mui/material/Container'
 import Box from '@mui/material/Box'
 import { Head, Header } from '../../Header'
-import { EditMenu, Props as EditMenuProps } from './EditMenu'
+import { EditMenu } from './EditMenu'
+import { DefaultPanel, Props as DefaultPanelProps } from './EditMenu/DefaultPanel'
+import { EditPanel, Props as EditPanelProps } from './EditMenu/EditPanel'
 import { DownloadDialog } from './DownloadDialog'
 import { COPYRIGHT_STR } from '../../../lib/constants'
+import { useEditValue } from '../../../lib/hooks/edit'
+import { useEditUIValue, useSetEditUIState } from '../../../lib/hooks/edit/ui'
 import { Thumb } from './Thumb'
+import { useBlur } from './index.hooks'
+
+// テクスチャサイズの上限をあげる。動的に変更したい
+// image blurなどが2048サイズになってしまうため
+fabric.textureSize = 2048 * 4
 
 type Props = {
   file: string
@@ -25,21 +34,19 @@ const INIT_COPYRIGHT: fabric.TextOptions = {
   selectable: false,
   hasControls: false,
   visible: false
-}
+} as const
 
 export const Edit: React.FC<Props> = (props) => {
-  const saveCropTimer = useRef<number>()
+  const { scale } = useEditValue()
+  const { openModalFlag, cropFlag } = useEditUIValue()
+  const { openModal, closeModal } = useSetEditUIState()
+  const { createBlur, moveBlur } = useBlur()
   const fabricRef = useRef<fabric.Canvas>()
   const boundingBoxRef = useRef<fabric.Rect>()
   const cropRef = useRef<fabric.Rect>()
   const imageRef = useRef<fabric.Image>()
   const copyrightRef = useRef<fabric.Text>()
-  const [copyright, setCopyrightState] = useState({ ...INIT_COPYRIGHT })
   const imgDomRef = useRef<HTMLImageElement>(null)
-  const [cropFlag, setCropFlag] = useState(false)
-  const [scale, setScale] = useState<number>(100)
-  const [rotate, setRotate] = useState<number>(0)
-  const [modalOpen, setModalOpen] = useState<boolean>(false)
   const [downloadCanvas, setDownloadCanvas] = useState<HTMLCanvasElement>()
 
   const saveCropData = useRef(
@@ -99,17 +106,15 @@ export const Edit: React.FC<Props> = (props) => {
     imageRef.current.viewportCenter().setCoords()
   }, [])
 
-  const handleScaleChange = useCallback(
-    (_scale: number) => {
-      setScale(_scale)
-      setCanvasSize(_scale)
+  const onChangeScale = useCallback(
+    (newScale: number) => {
+      setCanvasSize(newScale)
     },
     [setCanvasSize]
   )
 
-  const handleRotateChange = useCallback(
+  const onChangeRotate = useCallback(
     (_rotate: number) => {
-      setRotate(_rotate)
       if (imageRef.current) {
         imageRef.current.rotate(_rotate)
       }
@@ -149,72 +154,84 @@ export const Edit: React.FC<Props> = (props) => {
     fabricRef.current?.discardActiveObject()
   }, [])
 
-  const handleOnCrop: EditMenuProps['handleOnCrop'] = useCallback(
+  const handleOnCrop: EditPanelProps['handleOnCrop'] = useCallback(
     (state) => {
       if (!cropRef.current) {
         return
       }
 
-      if (state.type === 'start') {
+      if (state.state === 'start') {
         cropRef.current.strokeWidth = 0
         cropRef.current.fill = 'rgba(0, 0, 0, 0.5)'
         cropRef.current.selectable = true
         cropRef.current.visible = true
         cropRef.current.bringToFront()
         fabricRef.current?.setActiveObject(cropRef.current)
-        setCropFlag(true)
         return
       }
 
       cropRef.current.selectable = false
-      let flag = cropFlag
 
-      if (state.type === 'cancel') {
-        flag = false
+      if (state.state === 'none') {
         initCrop()
       }
 
-      if (state.type === 'done') {
-        flag = true
+      if (state.state === 'done') {
         cropRef.current.fill = 'rgba(0, 0, 0, 0)'
         cropRef.current.strokeWidth = 1
         cropRef.current.bringToFront()
         fabricRef.current?.discardActiveObject()
       }
 
-      setCropFlag(flag)
-      saveCropData.current(scale, flag)
+      saveCropData.current(scale, state.cropFlag)
       fabricRef.current?.renderAll()
     },
-    [cropFlag, initCrop, scale]
+    [initCrop, scale]
   )
 
-  const handleOnCopyright: EditMenuProps['handleOnCopyright'] = useCallback(
-    (checked, fontSize, color) => {
+  const onChangeCopyrightFontSize = useCallback<DefaultPanelProps['onChangeCopyrightFontSize']>(
+    (fontSize) => {
+      if (!copyrightRef.current) {
+        return
+      }
+      copyrightRef.current.set({ fontSize }).setCoords()
+      fabricRef.current?.renderAll()
+      saveCropData.current(scale, cropFlag)
+    },
+    [cropFlag, scale]
+  )
+
+  const onChangeCopyrightColor = useCallback<DefaultPanelProps['onChangeCopyrightColor']>(
+    (color) => {
+      if (!copyrightRef.current) {
+        return
+      }
+      copyrightRef.current.set({ fill: color }).setCoords()
+      fabricRef.current?.renderAll()
+      saveCropData.current(scale, cropFlag)
+    },
+    [cropFlag, scale]
+  )
+
+  const onChangeCopyright = useCallback<DefaultPanelProps['onChangeCopyright']>(
+    (checked) => {
       if (!copyrightRef.current) {
         return
       }
 
       if (!checked) {
-        copyrightRef.current.selectable = false
-        copyrightRef.current.visible = false
+        copyrightRef.current.set({
+          selectable: false,
+          visible: false
+        })
         fabricRef.current?.discardActiveObject()
         fabricRef.current?.renderAll()
         saveCropData.current(scale, cropFlag)
         return
       }
 
-      setCopyrightState({
-        ...copyright,
-        fontSize,
-        fill: color
-      })
-
       copyrightRef.current.set({
-        left: 0,
-        top: 0,
-        fontSize: fontSize,
-        fill: color,
+        ...INIT_COPYRIGHT,
         selectable: true,
         visible: true
       })
@@ -232,7 +249,7 @@ export const Edit: React.FC<Props> = (props) => {
       fabricRef.current?.renderAll()
       saveCropData.current(scale, cropFlag)
     },
-    [copyright, cropFlag, scale]
+    [cropFlag, scale]
   )
 
   const ref = useCallback((node) => {
@@ -313,8 +330,106 @@ export const Edit: React.FC<Props> = (props) => {
 
   const handleOnDownload = useCallback(() => {
     saveCropData.current(scale, cropFlag)
-    setModalOpen(true)
-  }, [cropFlag, scale])
+    openModal()
+  }, [cropFlag, openModal, scale])
+
+  const handleOnBlur = useCallback<EditPanelProps['handleOnBlur']>(
+    (id) => {
+      if (!fabricRef.current) {
+        return
+      }
+      const blurImage = createBlur(fabricRef.current, id)
+      saveCropData.current(scale, cropFlag)
+
+      blurImage.on('moving', () => {
+        if (!fabricRef.current) {
+          return
+        }
+        moveBlur(fabricRef.current, blurImage)
+        saveCropData.current(scale, cropFlag)
+      })
+      blurImage.on('scaling', () => {
+        if (!fabricRef.current) {
+          return
+        }
+        moveBlur(fabricRef.current, blurImage)
+        saveCropData.current(scale, cropFlag)
+      })
+    },
+    [createBlur, cropFlag, moveBlur, scale]
+  )
+
+  const handleOnSelectById = useCallback((id: string) => {
+    if (!fabricRef.current) {
+      return
+    }
+    for (const obj of fabricRef.current.getObjects()) {
+      if (obj.id === id) {
+        fabricRef.current.setActiveObject(obj)
+        fabricRef.current.renderAll()
+        break
+      }
+    }
+  }, [])
+
+  const handleOnDeletebyId = useCallback(
+    (id) => {
+      if (!fabricRef.current) {
+        return
+      }
+      for (const obj of fabricRef.current.getObjects()) {
+        if (obj.id === id) {
+          fabricRef.current.remove(obj)
+          saveCropData.current(scale, cropFlag)
+          break
+        }
+      }
+    },
+    [cropFlag, scale]
+  )
+
+  const handleOnShape = useCallback<EditPanelProps['handleOnShape']>(
+    (id, color) => {
+      if (!fabricRef.current) {
+        return
+      }
+      const rect = new fabric.Rect({
+        fill: color,
+        width: fabricRef.current.getWidth() / 4,
+        height: fabricRef.current.getHeight() / 4,
+        cornerStyle: 'circle',
+        strokeUniform: true
+      })
+      rect.id = id
+      rect.bringToFront()
+      rect.viewportCenter().setCoords()
+      fabricRef.current.add(rect)
+      fabricRef.current.renderAll()
+
+      saveCropData.current(scale, cropFlag)
+    },
+    [cropFlag, scale]
+  )
+
+  const handleOnChangeColorShape = useCallback<EditPanelProps['handleOnChangeColorShape']>((color) => {
+    if (!fabricRef.current) {
+      return
+    }
+    for (const obj of fabricRef.current.getActiveObjects()) {
+      obj.set({ fill: color }).setCoords()
+    }
+    fabricRef.current?.renderAll()
+  }, [])
+
+  const handleOnChangeOpacityShape = useCallback<EditPanelProps['handleOnChangeOpacityShape']>((opacity) => {
+    if (!fabricRef.current) {
+      return
+    }
+    for (const obj of fabricRef.current.getActiveObjects()) {
+      obj.set({ opacity }).setCoords()
+    }
+    fabricRef.current?.renderAll()
+  }, [])
 
   return (
     <>
@@ -331,22 +446,35 @@ export const Edit: React.FC<Props> = (props) => {
         </Container>
         <EditMenu
           thumb={<Thumb canvas={downloadCanvas} />}
-          scale={scale}
-          rotate={rotate}
-          copyright={{
-            fontSize: copyright.fontSize ?? INIT_COPYRIGHT_FONTSIZE,
-            color: copyright.fill ?? INIT_COPYRIGHT_FILL
-          }}
-          handleScaleChange={handleScaleChange}
-          handleRotateChange={handleRotateChange}
-          handleOnCrop={handleOnCrop}
-          handleOnCopyright={handleOnCopyright}
+          defaultPanel={
+            <DefaultPanel
+              onChangeScale={onChangeScale}
+              onChangeRotate={onChangeRotate}
+              onChangeCopyright={onChangeCopyright}
+              onChangeCopyrightFontSize={onChangeCopyrightFontSize}
+              onChangeCopyrightColor={onChangeCopyrightColor}
+              onChangeCrop={handleOnCrop}
+            />
+          }
+          editPanel={
+            <EditPanel
+              handleOnCrop={handleOnCrop}
+              handleOnBlur={handleOnBlur}
+              handleOnSelectBlur={handleOnSelectById}
+              handleOnDeleteBlur={handleOnDeletebyId}
+              handleOnShape={handleOnShape}
+              handleOnChangeColorShape={handleOnChangeColorShape}
+              handleOnChangeOpacityShape={handleOnChangeOpacityShape}
+              handleOnSelectShape={handleOnSelectById}
+              handleOnDeleteShape={handleOnDeletebyId}
+            />
+          }
           handleOnCancel={props.onBack}
           handleOnDownload={handleOnDownload}
         />
         <DownloadDialog
-          open={modalOpen}
-          onClose={() => setModalOpen(false)}
+          open={openModalFlag}
+          onClose={() => closeModal()}
           canvas={downloadCanvas}
           fileName={props.fileName}
         />
