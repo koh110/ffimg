@@ -9,7 +9,7 @@ export const Head = () => {
     <NextHead>
       <title>FF Image Clip</title>
       <meta name="description" content="ff14のスクリーンショットをお手軽に加工するためのWebサービス" />
-      <link rel="icon" href="/favicon.ico" />
+      <link rel="icon" href="/logo.svg" type="image/svg+xml" sizes="any" />
     </NextHead>
   )
 }
