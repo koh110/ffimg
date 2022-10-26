@@ -80,9 +80,8 @@ export const Edit: React.FC<Props> = (props) => {
     }, 100)
   )
 
-  const saveCropData = useCallback(() => {
+  const saveCropData = () =>
     debounceSaveCropData.current(scale, cropFlag)
-  }, [cropFlag, scale])
 
   const setCanvasSize = useCallback((_scale: number) => {
     if (!imageRef.current) {
@@ -117,17 +116,18 @@ export const Edit: React.FC<Props> = (props) => {
     [setCanvasSize]
   )
 
-  const onChangeRotate = useCallback(
-    (_rotate: number) => {
+  const debounceOnChangeRotate = useRef(
+    debounce((_rotate: number) => {
       if (imageRef.current) {
         imageRef.current.rotate(_rotate)
       }
       setCanvasSize(scale)
       fabricRef.current?.renderAll()
       saveCropData()
-    },
-    [saveCropData, scale, setCanvasSize]
+    }, 200)
   )
+
+  const onChangeRotate = (_rotate: number) => debounceOnChangeRotate.current(_rotate)
 
   const initCrop = useCallback(() => {
     if (!cropRef.current) {
@@ -256,19 +256,19 @@ export const Edit: React.FC<Props> = (props) => {
     [cropFlag, saveCropData]
   )
 
-  const ref = useCallback((node) => {
+  const ref = useCallback((node: HTMLCanvasElement) => {
     if (node) {
       const f = new fabric.Canvas(node, {
         isDrawingMode: false,
         backgroundColor: 'rgba(255, 255, 255, 0.05)'
       })
-      f.on('object:moving', () => saveCropData())
       f.setDimensions({
         width: '400',
         height: '400'
       })
 
       const copyrightText = new fabric.Text(COPYRIGHT_STR, { ...INIT_COPYRIGHT })
+      copyrightText.on('moving', () => saveCropData())
       f.add(copyrightText)
       copyrightRef.current = copyrightText
 
@@ -376,7 +376,7 @@ export const Edit: React.FC<Props> = (props) => {
   }, [])
 
   const handleOnDeletebyId = useCallback(
-    (id) => {
+    (id: string) => {
       if (!fabricRef.current) {
         return
       }

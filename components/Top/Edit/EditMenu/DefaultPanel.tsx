@@ -85,7 +85,7 @@ export const DefaultPanel: React.FC<Props> = (props) => {
         value={rotate}
         min={-180}
         max={180}
-        sliderStep={45}
+        sliderStep={15}
         step={1}
         handleSliderChange={handleRotateChange}
       />
