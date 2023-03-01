@@ -1,6 +1,20 @@
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import throttle from 'lodash.throttle'
 import { fabric } from 'fabric'
+import { useEditValue } from '../../../lib/hooks/edit'
+
+export const useValues = () => {
+  // canvas内部で生成したハンドラがclosureになって過去の値を参照してしまう
+  const { scale, cropFlag } = useEditValue()
+  const scaleAndCropRef = useRef({ scale, cropFlag })
+  useEffect(() => {
+    scaleAndCropRef.current = { scale, cropFlag }
+  }, [scale, cropFlag])
+
+  return {
+    scaleAndCropRef
+  }
+}
 
 export const useBlur = () => {
   const createBlur = (canvas: fabric.Canvas, id: string) => {

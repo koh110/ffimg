@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import { useCallback } from 'react'
 import Divider from '@mui/material/Divider'
 import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
@@ -6,7 +6,7 @@ import CropIcon from '@mui/icons-material/Crop'
 import DoneIcon from '@mui/icons-material/Done'
 import DeleteIcon from '@mui/icons-material/Delete'
 import IconButton from '@mui/material/IconButton'
-import { useEditUIValue, useSetEditUIState } from '../../../../../lib/hooks/edit/ui'
+import { useEditValue, useSetEditState } from '../../../../../lib/hooks/edit'
 import { CropHandler } from '../../../../../lib/type'
 import { FEATURE_FLAGS } from '../../../../../lib/constants'
 import { EditBlur, Props as EditBlurProps } from './EditBlur'
@@ -24,9 +24,9 @@ export type Props = {
   handleOnCrop: CropHandler
 }
 
-export const EditPanel: React.FC<Props> = (props) => {
-  const { cropState } = useEditUIValue()
-  const { cropStart, cropDone, cropRemove } = useSetEditUIState()
+export function EditPanel(props: Props) {
+  const { cropState } = useEditValue()
+  const { cropStart, cropDone, cropRemove } = useSetEditState()
 
   const handleOnCropStart = useCallback(() => {
     const res = cropStart()

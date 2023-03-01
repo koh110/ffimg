@@ -11,7 +11,6 @@ import Tabs, { TabsProps } from '@mui/material/Tabs'
 import Tab from '@mui/material/Tab'
 import { ArrowLeft, ArrowRight, ArrowDropUp, ArrowDropDown } from '@mui/icons-material'
 import { COPYRIGHT_STR } from '../../../../lib/constants'
-import { useSetEditUIState } from '../../../../lib/hooks/edit/ui'
 
 type Position = {
   top?: React.CSSProperties['top']
@@ -28,8 +27,7 @@ export type Props = {
   handleOnCancel: () => void
 }
 
-export const EditMenu: React.FC<Props> = (props) => {
-  const { cropRemove } = useSetEditUIState()
+export function EditMenu(props: Props) {
   const [menuPosition, setMenuPosition] = useState<Position>({
     right: '2em',
     bottom: '2em'
@@ -68,9 +66,7 @@ export const EditMenu: React.FC<Props> = (props) => {
     [menuPosition]
   )
 
-  const handleTabChange = useCallback<NonNullable<TabsProps['onChange']>>((e, val) => {
-    setTabValue(val)
-  }, [])
+  const handleTabChange: TabsProps['onChange'] =(e, val) => setTabValue(val)
 
   return (
     <Box
