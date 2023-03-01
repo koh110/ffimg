@@ -1,9 +1,9 @@
-import { useCallback, useRef } from 'react'
+import { useRef } from 'react'
 import throttle from 'lodash.throttle'
 import { fabric } from 'fabric'
 
 export const useBlur = () => {
-  const createBlur = useCallback((canvas: fabric.Canvas, id: string) => {
+  const createBlur = (canvas: fabric.Canvas, id: string) => {
     const zoom = canvas.getZoom()
 
     canvas.setZoom(1)
@@ -43,7 +43,7 @@ export const useBlur = () => {
     canvas.renderAll()
 
     return blurImage
-  }, [])
+  }
 
   const moveBlur = useRef(
     throttle((canvas: fabric.Canvas, image: fabric.Image) => {
