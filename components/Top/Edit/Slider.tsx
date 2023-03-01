@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react'
+import { useMemo } from 'react'
 import Typography from '@mui/material/Typography'
 import MuiSlider from '@mui/material/Slider'
 import Grid from '@mui/material/Grid'
@@ -18,11 +18,12 @@ export type Props = {
   handleSliderChange: (value: number) => void
 }
 
-export const Slider: React.FC<Props> = (props) => {
+export function Slider(props: Props) {
   const value = useMemo(() => {
     return props.value
   }, [props.value])
-  const handleSliderChange: Parameters<typeof MuiSlider>[0]['onChange'] = useCallback(
+
+  const handleSliderChange: Parameters<typeof MuiSlider>[0]['onChange'] =
     (event, newValue) => {
       const val = newValue as number
       if (val < props.min) {
@@ -34,11 +35,9 @@ export const Slider: React.FC<Props> = (props) => {
         return
       }
       props.handleSliderChange(val)
-    },
-    [props]
-  )
+    }
 
-  const handleInputChange: Parameters<typeof MuiInput>[0]['onChange'] = useCallback(
+  const handleInputChange: Parameters<typeof MuiInput>[0]['onChange'] = 
     (event) => {
       if (event.target.value === '') {
         props.handleSliderChange(props.max)
@@ -50,27 +49,25 @@ export const Slider: React.FC<Props> = (props) => {
         return
       }
       props.handleSliderChange(val)
-    },
-    [props]
-  )
+    }
 
-  const handleBlur = useCallback(() => {
+  const handleBlur = () => {
     if (props.value < props.min) {
       props.handleSliderChange(props.min)
     } else if (props.value > props.max) {
       props.handleSliderChange(props.max)
     }
-  }, [props])
+  }
 
-  const onAdd = useCallback(() => {
+  const onAdd = () => {
     const val = props.value + props.sliderStep > props.max ? props.max : props.value + props.sliderStep
     props.handleSliderChange(val)
-  }, [props])
+  }
 
-  const onRemove = useCallback(() => {
+  const onRemove = () => {
     const val = props.value - props.sliderStep < props.min ? props.min : props.value - props.sliderStep
     props.handleSliderChange(val)
-  }, [props])
+  }
 
   return (
     <Grid container>

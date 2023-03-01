@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react'
+import { useRef, useState, useEffect, useMemo } from 'react'
 import { fabric } from 'fabric'
 import debounce from 'lodash.debounce'
 import Container from '@mui/material/Container'
@@ -9,10 +9,9 @@ import { DefaultPanel, Props as DefaultPanelProps } from './EditMenu/DefaultPane
 import { EditPanel, Props as EditPanelProps } from './EditMenu/EditPanel'
 import { DownloadDialog } from './DownloadDialog'
 import { COPYRIGHT_STR } from '../../../lib/constants'
-import { useEditValue } from '../../../lib/hooks/edit'
 import { useEditUIValue, useSetEditUIState } from '../../../lib/hooks/edit/ui'
 import { Thumb } from './Thumb'
-import { useBlur } from './index.hooks'
+import { useBlur, useValues } from './index.hooks'
 
 // テクスチャサイズの上限をあげる。動的に変更したい
 // image blurなどが2048サイズになってしまうため
@@ -36,9 +35,9 @@ const INIT_COPYRIGHT: fabric.TextOptions = {
   visible: false
 } as const
 
-export const Edit: React.FC<Props> = (props) => {
-  const { scale } = useEditValue()
-  const { openModalFlag, cropFlag } = useEditUIValue()
+export function Edit(props: Props) {
+  const { scaleAndCropRef } = useValues()
+  const { openModalFlag } = useEditUIValue()
   const { openModal, closeModal } = useSetEditUIState()
   const { createBlur, moveBlur } = useBlur()
   const fabricRef = useRef<fabric.Canvas>()
@@ -49,20 +48,21 @@ export const Edit: React.FC<Props> = (props) => {
   const imgDomRef = useRef<HTMLImageElement>(null)
   const [downloadCanvas, setDownloadCanvas] = useState<HTMLCanvasElement>()
 
-  const debounceSaveCropData = useRef(
-    debounce((newScale: number, crop: boolean) => {
+  const saveCropData = useRef(
+    debounce(() => {
       if (!fabricRef.current) {
         return
       }
+      const { scale, cropFlag }= scaleAndCropRef.current;
       fabricRef.current?.setZoom(1)
       const options: fabric.IDataURLOptions = {
         format: 'png',
         left: 0,
         top: 0,
-        width: ((fabricRef.current.width ?? 1) * 100) / newScale,
-        height: ((fabricRef.current.height ?? 1) * 100) / newScale
+        width: ((fabricRef.current.width ?? 1) * 100) / scale,
+        height: ((fabricRef.current.height ?? 1) * 100) / scale
       }
-      if (cropRef.current && crop) {
+      if (cropRef.current && cropFlag) {
         cropRef.current.set({ opacity: 0 }).setCoords()
         const scaleX = cropRef.current.scaleX ?? 1
         const scaleY = cropRef.current.scaleY ?? 1
@@ -73,18 +73,14 @@ export const Edit: React.FC<Props> = (props) => {
       }
       setDownloadCanvas(fabricRef.current.toCanvasElement(1, options))
 
-      if (cropRef.current && crop) {
+      if (cropRef.current && cropFlag) {
         cropRef.current?.set({ opacity: 1 }).setCoords()
       }
-      fabricRef.current?.setZoom(newScale / 100)
+      fabricRef.current?.setZoom(scale / 100)
     }, 100)
   )
 
-  const saveCropData = useCallback(() => {
-    debounceSaveCropData.current(scale, cropFlag)
-  }, [cropFlag, scale])
-
-  const setCanvasSize = useCallback((_scale: number) => {
+  const setCanvasSize = (_scale: number) => {
     if (!imageRef.current) {
       return
     }
@@ -108,28 +104,26 @@ export const Edit: React.FC<Props> = (props) => {
     }
 
     imageRef.current.viewportCenter().setCoords()
-  }, [])
+  }
 
-  const onChangeScale = useCallback(
-    (newScale: number) => {
-      setCanvasSize(newScale)
-    },
-    [setCanvasSize]
-  )
+  const onChangeScale = (newScale: number) => {
+    setCanvasSize(newScale)
+  }
 
-  const onChangeRotate = useCallback(
-    (_rotate: number) => {
+  const debounceOnChangeRotate = useRef(
+    debounce((_rotate: number) => {
       if (imageRef.current) {
         imageRef.current.rotate(_rotate)
       }
-      setCanvasSize(scale)
+      setCanvasSize(scaleAndCropRef.current.scale)
       fabricRef.current?.renderAll()
-      saveCropData()
-    },
-    [saveCropData, scale, setCanvasSize]
+      saveCropData.current()
+    }, 200)
   )
 
-  const initCrop = useCallback(() => {
+  const onChangeRotate = (_rotate: number) => debounceOnChangeRotate.current(_rotate)
+
+  const initCrop = () => {
     if (!cropRef.current) {
       return
     }
@@ -156,153 +150,147 @@ export const Edit: React.FC<Props> = (props) => {
 
     cropRef.current.setCoords()
     fabricRef.current?.discardActiveObject()
-  }, [])
+  }
 
-  const handleOnCrop: EditPanelProps['handleOnCrop'] = useCallback(
-    (state) => {
-      if (!cropRef.current) {
-        return
-      }
+  const handleOnCrop: EditPanelProps['handleOnCrop'] = (state) => {
+    if (!cropRef.current) {
+      return
+    }
 
-      if (state.state === 'start') {
-        cropRef.current.strokeWidth = 0
-        cropRef.current.fill = 'rgba(0, 0, 0, 0.5)'
-        cropRef.current.selectable = true
-        cropRef.current.visible = true
-        cropRef.current.bringToFront()
-        fabricRef.current?.setActiveObject(cropRef.current)
-        return
-      }
+    if (state.state === 'start') {
+      cropRef.current.strokeWidth = 0
+      cropRef.current.fill = 'rgba(0, 0, 0, 0.5)'
+      cropRef.current.selectable = true
+      cropRef.current.visible = true
+      cropRef.current.bringToFront()
+      fabricRef.current?.setActiveObject(cropRef.current)
+      return
+    }
 
-      cropRef.current.selectable = false
+    cropRef.current.selectable = false
 
-      if (state.state === 'none') {
-        initCrop()
-      }
+    if (state.state === 'none') {
+      initCrop()
+    }
 
-      if (state.state === 'done') {
-        cropRef.current.fill = 'rgba(0, 0, 0, 0)'
-        cropRef.current.strokeWidth = 1
-        cropRef.current.bringToFront()
-        fabricRef.current?.discardActiveObject()
-      }
+    if (state.state === 'done') {
+      cropRef.current.fill = 'rgba(0, 0, 0, 0)'
+      cropRef.current.strokeWidth = 1
+      cropRef.current.bringToFront()
+      fabricRef.current?.discardActiveObject()
+    }
 
-      saveCropData()
-      fabricRef.current?.renderAll()
-    },
-    [initCrop, saveCropData]
-  )
+    saveCropData.current()
+    fabricRef.current?.renderAll()
+  }
 
-  const onChangeCopyrightFontSize = useCallback<DefaultPanelProps['onChangeCopyrightFontSize']>(
-    (fontSize) => {
-      if (!copyrightRef.current) {
-        return
-      }
-      copyrightRef.current.set({ fontSize }).setCoords()
-      fabricRef.current?.renderAll()
-      saveCropData()
-    },
-    [saveCropData]
-  )
+  const onChangeCopyrightFontSize: DefaultPanelProps['onChangeCopyrightFontSize'] = (fontSize) => {
+    if (!copyrightRef.current) {
+      return
+    }
+    copyrightRef.current.set({ fontSize }).setCoords()
+    fabricRef.current?.renderAll()
+    saveCropData.current()
+  }
 
-  const onChangeCopyrightColor = useCallback<DefaultPanelProps['onChangeCopyrightColor']>(
-    (color) => {
-      if (!copyrightRef.current) {
-        return
-      }
-      copyrightRef.current.set({ fill: color }).setCoords()
-      fabricRef.current?.renderAll()
-      saveCropData()
-    },
-    [saveCropData]
-  )
+  const onChangeCopyrightColor: DefaultPanelProps['onChangeCopyrightColor'] = (color) => {
+    if (!copyrightRef.current) {
+      return
+    }
+    copyrightRef.current.set({ fill: color }).setCoords()
+    fabricRef.current?.renderAll()
+    saveCropData.current()
+  }
 
-  const onChangeCopyright = useCallback<DefaultPanelProps['onChangeCopyright']>(
-    (checked) => {
-      if (!copyrightRef.current) {
-        return
-      }
+  const onChangeCopyright: DefaultPanelProps['onChangeCopyright'] = (checked) => {
+    if (!copyrightRef.current) {
+      return
+    }
 
-      if (!checked) {
-        copyrightRef.current.set({
-          selectable: false,
-          visible: false
-        })
-        fabricRef.current?.discardActiveObject()
-        fabricRef.current?.renderAll()
-        saveCropData()
-        return
-      }
-
+    if (!checked) {
       copyrightRef.current.set({
-        ...INIT_COPYRIGHT,
-        selectable: true,
-        visible: true
-      })
-
-      if (cropFlag) {
-        copyrightRef.current.set({
-          left: Math.max(cropRef.current?.left ?? 0, 0),
-          top: Math.max(cropRef.current?.top ?? 0, 0)
-        })
-      }
-
-      copyrightRef.current.setCoords()
-      copyrightRef.current.bringToFront()
-      fabricRef.current?.setActiveObject(copyrightRef.current)
-      fabricRef.current?.renderAll()
-      saveCropData()
-    },
-    [cropFlag, saveCropData]
-  )
-
-  const ref = useCallback((node) => {
-    if (node) {
-      const f = new fabric.Canvas(node, {
-        isDrawingMode: false,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)'
-      })
-      f.on('object:moving', () => saveCropData())
-      f.setDimensions({
-        width: '400',
-        height: '400'
-      })
-
-      const copyrightText = new fabric.Text(COPYRIGHT_STR, { ...INIT_COPYRIGHT })
-      f.add(copyrightText)
-      copyrightRef.current = copyrightText
-
-      const boundingBox = new fabric.Rect({
-        fill: 'none',
-        width: 20,
-        height: 20,
-        evented: false,
-        selectable: false
-      })
-      boundingBoxRef.current = boundingBox
-      f.add(boundingBox)
-
-      const crop = new fabric.Rect({
-        fill: 'rgba(0, 0, 0, 0)',
-        width: 20,
-        height: 20,
-        cornerStyle: 'circle',
-        stroke: 'red',
-        strokeWidth: 1,
-        strokeUniform: true,
+        selectable: false,
         visible: false
       })
-      crop.setControlsVisibility({ mtr: false })
-      f.add(crop)
-      cropRef.current = crop
-
-      fabricRef.current = f
-    } else if (fabricRef.current) {
-      fabricRef.current.dispose()
+      fabricRef.current?.discardActiveObject()
+      fabricRef.current?.renderAll()
+      saveCropData.current()
+      return
     }
-  }, [])
 
-  const imageOnLoad = useCallback(() => {
+    copyrightRef.current.set({
+      ...INIT_COPYRIGHT,
+      selectable: true,
+      visible: true
+    })
+
+    if (scaleAndCropRef.current.cropFlag) {
+      copyrightRef.current.set({
+        left: Math.max(cropRef.current?.left ?? 0, 0),
+        top: Math.max(cropRef.current?.top ?? 0, 0)
+      })
+    }
+
+    copyrightRef.current.setCoords()
+    copyrightRef.current.bringToFront()
+    fabricRef.current?.setActiveObject(copyrightRef.current)
+    fabricRef.current?.renderAll()
+    saveCropData.current()
+  }
+
+  const ref = (node: HTMLCanvasElement) => {
+    if (!node) {
+      return
+    }
+
+    if (fabricRef.current) {
+      return
+    }
+
+    const f = new fabric.Canvas(node, {
+      isDrawingMode: false,
+      backgroundColor: 'rgba(255, 255, 255, 0.05)'
+    })
+    f.setDimensions({
+      width: '400',
+      height: '400'
+    })
+
+    const copyrightText = new fabric.Text(COPYRIGHT_STR, { ...INIT_COPYRIGHT })
+    copyrightText.on('moving', () => {
+      saveCropData.current()
+    })
+    f.add(copyrightText)
+    copyrightRef.current = copyrightText
+
+    const boundingBox = new fabric.Rect({
+      fill: 'none',
+      width: 20,
+      height: 20,
+      evented: false,
+      selectable: false
+    })
+    boundingBoxRef.current = boundingBox
+    f.add(boundingBox)
+
+    const crop = new fabric.Rect({
+      fill: 'rgba(0, 0, 0, 0)',
+      width: 20,
+      height: 20,
+      cornerStyle: 'circle',
+      stroke: 'red',
+      strokeWidth: 1,
+      strokeUniform: true,
+      visible: false
+    })
+    crop.setControlsVisibility({ mtr: false })
+    f.add(crop)
+    cropRef.current = crop
+
+    fabricRef.current = f
+  }
+
+  const imageOnLoad = () => {
     if (!imgDomRef.current || !fabricRef || !fabricRef.current) {
       return
     }
@@ -316,15 +304,15 @@ export const Edit: React.FC<Props> = (props) => {
     imageRef.current = img
     fabricRef.current.add(img)
 
-    setCanvasSize(scale)
+    setCanvasSize(scaleAndCropRef.current.scale)
 
     if (cropRef.current) {
       initCrop()
     }
 
-    saveCropData()
+    saveCropData.current()
     fabricRef.current.renderAll()
-  }, [initCrop, saveCropData, scale, setCanvasSize])
+  }
 
   useEffect(() => {
     if (!imgDomRef.current) {
@@ -333,36 +321,33 @@ export const Edit: React.FC<Props> = (props) => {
     imgDomRef.current.src = props.file
   }, [props.file])
 
-  const handleOnDownload = useCallback(() => {
-    saveCropData()
+  const handleOnDownload = () => {
+    saveCropData.current()
     openModal()
-  }, [openModal, saveCropData])
+  }
 
-  const handleOnBlur = useCallback<EditPanelProps['handleOnBlur']>(
-    (id) => {
+  const handleOnBlur: EditPanelProps['handleOnBlur'] = (id) => {
+    if (!fabricRef.current) {
+      return
+    }
+    const blurImage = createBlur(fabricRef.current, id)
+    saveCropData.current()
+
+    blurImage.on('moving', () => {
       if (!fabricRef.current) {
         return
       }
-      const blurImage = createBlur(fabricRef.current, id)
-      saveCropData()
+      moveBlur(fabricRef.current, blurImage)
+    })
+    blurImage.on('scaling', () => {
+      if (!fabricRef.current) {
+        return
+      }
+      moveBlur(fabricRef.current, blurImage)
+    })
+  }
 
-      blurImage.on('moving', () => {
-        if (!fabricRef.current) {
-          return
-        }
-        moveBlur(fabricRef.current, blurImage)
-      })
-      blurImage.on('scaling', () => {
-        if (!fabricRef.current) {
-          return
-        }
-        moveBlur(fabricRef.current, blurImage)
-      })
-    },
-    [createBlur, moveBlur, saveCropData]
-  )
-
-  const handleOnSelectById = useCallback((id: string) => {
+  const handleOnSelectById = (id: string) => {
     if (!fabricRef.current) {
       return
     }
@@ -373,48 +358,42 @@ export const Edit: React.FC<Props> = (props) => {
         break
       }
     }
-  }, [])
+  }
 
-  const handleOnDeletebyId = useCallback(
-    (id) => {
-      if (!fabricRef.current) {
-        return
+  const handleOnDeletebyId = (id: string) => {
+    if (!fabricRef.current) {
+      return
+    }
+    for (const obj of fabricRef.current.getObjects()) {
+      if (obj.id === id) {
+        fabricRef.current.remove(obj)
+        saveCropData.current()
+        break
       }
-      for (const obj of fabricRef.current.getObjects()) {
-        if (obj.id === id) {
-          fabricRef.current.remove(obj)
-          saveCropData()
-          break
-        }
-      }
-    },
-    [saveCropData]
-  )
+    }
+  }
 
-  const handleOnShape = useCallback<EditPanelProps['handleOnShape']>(
-    (id, color) => {
-      if (!fabricRef.current) {
-        return
-      }
-      const rect = new fabric.Rect({
-        fill: color,
-        width: fabricRef.current.getWidth() / 4,
-        height: fabricRef.current.getHeight() / 4,
-        cornerStyle: 'circle',
-        strokeUniform: true
-      })
-      rect.id = id
-      rect.bringToFront()
-      rect.viewportCenter().setCoords()
-      fabricRef.current.add(rect)
-      fabricRef.current.renderAll()
+  const handleOnShape: EditPanelProps['handleOnShape'] = (id, color) => {
+    if (!fabricRef.current) {
+      return
+    }
+    const rect = new fabric.Rect({
+      fill: color,
+      width: fabricRef.current.getWidth() / 4,
+      height: fabricRef.current.getHeight() / 4,
+      cornerStyle: 'circle',
+      strokeUniform: true
+    })
+    rect.id = id
+    rect.bringToFront()
+    rect.viewportCenter().setCoords()
+    fabricRef.current.add(rect)
+    fabricRef.current.renderAll()
 
-      saveCropData()
-    },
-    [saveCropData]
-  )
+    saveCropData.current()
+  }
 
-  const handleOnChangeColorShape = useCallback<EditPanelProps['handleOnChangeColorShape']>((color) => {
+  const handleOnChangeColorShape: EditPanelProps['handleOnChangeColorShape'] = (color) => {
     if (!fabricRef.current) {
       return
     }
@@ -422,9 +401,9 @@ export const Edit: React.FC<Props> = (props) => {
       obj.set({ fill: color }).setCoords()
     }
     fabricRef.current?.renderAll()
-  }, [])
+  }
 
-  const handleOnChangeOpacityShape = useCallback<EditPanelProps['handleOnChangeOpacityShape']>((opacity) => {
+  const handleOnChangeOpacityShape: EditPanelProps['handleOnChangeOpacityShape'] = (opacity) => {
     if (!fabricRef.current) {
       return
     }
@@ -432,7 +411,7 @@ export const Edit: React.FC<Props> = (props) => {
       obj.set({ opacity }).setCoords()
     }
     fabricRef.current?.renderAll()
-  }, [])
+  }
 
   return (
     <>

@@ -5,7 +5,6 @@ import CopyrightIcon from '@mui/icons-material/Copyright'
 import Switch, { SwitchProps } from '@mui/material/Switch'
 import { Slider, Props as SliderProps } from '../Slider'
 import { useEditValue, useSetEditState } from '../../../../lib/hooks/edit'
-import { useEditUIValue, useSetEditUIState } from '../../../../lib/hooks/edit/ui'
 import { InputColor, Props as InputColorProps } from '../../../InputColor'
 import { CropHandler } from '../../../../lib/type'
 
@@ -19,10 +18,8 @@ export type Props = {
 }
 
 export const DefaultPanel: React.FC<Props> = (props) => {
-  const { scale, rotate, copyrightColor, copyrightFontSize } = useEditValue()
-  const { copyrightFlag } = useEditUIValue()
-  const { setScale, setRotate, setCopyrightFontSize, setCopyrightColor } = useSetEditState()
-  const { copyrightOn, copyrightOff, cropRemove } = useSetEditUIState()
+  const { scale, rotate, copyrightColor, copyrightFontSize, copyrightFlag } = useEditValue()
+  const { setScale, setRotate, setCopyrightFontSize, setCopyrightColor, copyrightOn, copyrightOff, cropRemove } = useSetEditState()
 
   const handleScaleChange = useCallback<SliderProps['handleSliderChange']>(
     (newScale) => {
@@ -85,7 +82,7 @@ export const DefaultPanel: React.FC<Props> = (props) => {
         value={rotate}
         min={-180}
         max={180}
-        sliderStep={45}
+        sliderStep={15}
         step={1}
         handleSliderChange={handleRotateChange}
       />

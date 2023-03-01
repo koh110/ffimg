@@ -79,14 +79,11 @@ export const DownloadDialog: React.FC<Props> = (props) => {
     props.onClose()
   }, [props])
 
-  const onSelectType: SelectProps<string>['onChange'] = useCallback(
-    (e) => {
-      const _type = e.target.value
-      setType(_type)
-      toBlob(props.canvas, _type)
-    },
-    [props.canvas, toBlob]
-  )
+  const onSelectType: SelectProps<string>['onChange'] = (e) => {
+    const _type = e.target.value
+    setType(_type)
+    toBlob(props.canvas, _type)
+  }
 
   const handleSliderChange = useCallback(
     (val: number) => {
