@@ -3,7 +3,7 @@ import { fabric } from 'fabric'
 import debounce from 'lodash.debounce'
 import Container from '@mui/material/Container'
 import Box from '@mui/material/Box'
-import { Head, Header } from '../../Header'
+import { Header } from '../../Header'
 import { EditMenu } from './EditMenu'
 import { DefaultPanel, Props as DefaultPanelProps } from './EditMenu/DefaultPanel'
 import { EditPanel, Props as EditPanelProps } from './EditMenu/EditPanel'
@@ -35,7 +35,7 @@ const INIT_COPYRIGHT: fabric.TextOptions = {
   visible: false
 } as const
 
-export function Edit(props: Props) {
+export default function Edit(props: Props) {
   const { scaleAndCropRef } = useValues()
   const { openModalFlag } = useEditUIValue()
   const { openModal, closeModal } = useSetEditUIState()
@@ -415,7 +415,6 @@ export function Edit(props: Props) {
 
   return (
     <>
-      <Head />
       <main>
         <Header />
         <Container sx={{ my: 2 }} maxWidth={false}>

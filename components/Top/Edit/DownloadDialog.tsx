@@ -12,7 +12,7 @@ import DownloadIcon from '@mui/icons-material/Download'
 import InputLabel from '@mui/material/InputLabel'
 import MenuItem from '@mui/material/MenuItem'
 import FormControl from '@mui/material/FormControl'
-import Select, { SelectProps } from '@mui/material/Select'
+import Select, { type SelectProps } from '@mui/material/Select'
 import { Slider } from './Slider'
 
 type Props = {

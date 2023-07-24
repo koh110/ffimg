@@ -5,7 +5,7 @@ import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import CardActions from '@mui/material/CardActions'
 import EditIcon from '@mui/icons-material/Edit'
-import { Head, Header } from '../Header'
+import { Header } from '../Header'
 import { Upload, Props as UploadProps } from './Upload'
 import { Dropper } from './Dropper'
 import { COPYRIGHT_STR } from '../../lib/constants'
@@ -19,7 +19,6 @@ export type Props = {
 export const DefaultTop: React.FC<Props> = (props) => {
   return (
     <>
-      <Head />
       <main>
         <Header />
         <Container sx={{ my: 2 }}>
