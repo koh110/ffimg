@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
 import Typography from '@mui/material/Typography'
-import MuiSlider from '@mui/material/Slider'
+import MuiSlider, { type SliderProps } from '@mui/material/Slider'
 import Grid from '@mui/material/Grid'
-import MuiInput from '@mui/material/Input'
+import MuiInput, { type InputProps } from '@mui/material/Input'
 import AddIcon from '@mui/icons-material/Add'
 import RemoveIcon from '@mui/icons-material/Remove'
 import Stack from '@mui/material/Stack'
@@ -40,7 +40,7 @@ export function Slider(props: Props) {
   const handleInputChange: Parameters<typeof MuiInput>[0]['onChange'] = 
     (event) => {
       if (event.target.value === '') {
-        props.handleSliderChange(props.max)
+        props.handleSliderChange(0)
         return
       }
       const val = Number(event.target.value)
