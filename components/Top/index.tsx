@@ -1,8 +1,12 @@
+'use client'
+import dynamic from 'next/dynamic'
+import { RecoilRoot } from 'recoil'
 import { useState, useCallback } from 'react'
-import { DefaultTop, Props as TopProps } from './DefaultTop'
-import { Edit } from './Edit'
+import { DefaultTop, type Props as TopProps } from './DefaultTop'
 
-export const Top = () => {
+const Edit = dynamic(() => import('./Edit'), { ssr: false })
+
+export default function Top() {
   const [fileName, setFileName] = useState('')
   const [file, setFile] = useState<string | undefined>(undefined)
   const [editFlag, setEditFlag] = useState<boolean>(false)
@@ -22,9 +26,9 @@ export const Top = () => {
   }, [])
 
   return (
-    <>
+    <RecoilRoot>
       {editFlag && file && <Edit file={file} fileName={fileName} onBack={onBack} />}
       {!editFlag && <DefaultTop file={file} onLoadFile={onLoadFile} onEdit={onEdit} />}
-    </>
+    </RecoilRoot>
   )
 }
