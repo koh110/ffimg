@@ -8,8 +8,12 @@ type State = {
   copyrightColor: string | fabric.Pattern | fabric.Gradient
   copyrightFontSize: number
   shape: string[]
-  shapeColor: string
-  shapeOpacity: number
+  shapeData: {
+    [key: string]: {
+      color: string
+      opacity: number
+    }
+  }
   blur: string[]
   cropFlag: boolean
   cropState: CropState
@@ -24,8 +28,7 @@ const editState = atom<State>({
     copyrightFontSize: 15,
     copyrightColor: '#FFFFFF',
     shape: [],
-    shapeColor: '#000000',
-    shapeOpacity: 1,
+    shapeData: {},
     blur: [],
     cropFlag: false,
     cropState: 'none',
@@ -59,10 +62,50 @@ export const useSetEditState = () => {
     setCopyrightColor: (copyrightColor: State['copyrightColor']) => setEditState((old) => ({ ...old, copyrightColor })),
     addBlur: addShapeArray('blur'),
     removeBlur: removeShapeArray('blur'),
-    addShape: addShapeArray('shape'),
-    removeShape: removeShapeArray('shape'),
-    setShapeColor: (color: string) => setEditState((old) => ({ ...old, shapeColor: color })),
-    setShapeOpacity: (opacity: number) => setEditState((old) => ({ ...old, shapeOpacity: opacity })),
+    addShape: (add: string, color: string) => {
+      setEditState((old) => ({
+        ...old,
+        shape: [...old.shape, add],
+        shapeData: {
+          ...old.shapeData,
+          [add]: {
+            color,
+            opacity: 1
+          }
+        }
+      }))
+    },
+    removeShape: (index: number) => {
+      setEditState((old) => {
+        const id = old.shape[index]
+        const { [id]: _, ...others } = old.shapeData
+        return {
+          ...old,
+          shape: [...old.shape.slice(0, index), ...old.shape.slice(index + 1)],
+          shapeData: others
+        }
+      })
+    },
+    setShapeColor: (id: string, color: string) => {
+      setEditState((old) => {
+        const shapeData = { ...old.shapeData }
+        shapeData[id] = {
+          color,
+          opacity: shapeData[id].opacity
+        }
+        return { ...old, shapeData }
+      })
+    },
+    setShapeOpacity: (id: string, opacity: number) => {
+      setEditState((old) => {
+        const shapeData = { ...old.shapeData }
+        shapeData[id] = {
+          color: shapeData[id].color,
+          opacity
+        }
+        return { ...old, shapeData }
+      })
+    },
     cropStart: () => {
       const cropFlag = true
       const cropState: CropState = 'start'

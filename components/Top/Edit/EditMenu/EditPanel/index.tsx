@@ -10,17 +10,11 @@ import { useEditValue, useSetEditState } from '../../../../../lib/hooks/edit'
 import { CropHandler } from '../../../../../lib/type'
 import { FEATURE_FLAGS } from '../../../../../lib/constants'
 import { EditBlur, Props as EditBlurProps } from './EditBlur'
-import { Shape, Props as ShapeProps } from './Shape'
 
 export type Props = {
   handleOnBlur: EditBlurProps['handleOnBlur']
   handleOnSelectBlur: EditBlurProps['handleOnSelectBlur']
   handleOnDeleteBlur: EditBlurProps['handleOnDeleteBlur']
-  handleOnShape: ShapeProps['handleOnAddShape']
-  handleOnChangeColorShape: ShapeProps['handleOnChangeColorShape']
-  handleOnChangeOpacityShape: ShapeProps['handleOnChangeOpacityShape']
-  handleOnSelectShape: ShapeProps['handleOnSelectShape']
-  handleOnDeleteShape: ShapeProps['handleOnDeleteShape']
   handleOnCrop: CropHandler
 }
 
@@ -51,13 +45,6 @@ export function EditPanel(props: Props) {
           handleOnDeleteBlur={props.handleOnDeleteBlur}
         />
       )}
-      <Shape
-        handleOnAddShape={props.handleOnShape}
-        handleOnChangeColorShape={props.handleOnChangeColorShape}
-        handleOnChangeOpacityShape={props.handleOnChangeOpacityShape}
-        handleOnSelectShape={props.handleOnSelectShape}
-        handleOnDeleteShape={props.handleOnDeleteShape}
-      />
       <Stack direction="row" spacing={1}>
         <Button variant="outlined" onClick={handleOnCropStart} startIcon={<CropIcon />}>
           切り抜く

@@ -3,6 +3,7 @@ import Typography from '@mui/material/Typography'
 import MuiSlider, { type SliderProps } from '@mui/material/Slider'
 import Grid from '@mui/material/Grid'
 import MuiInput, { type InputProps } from '@mui/material/Input'
+import TextField from '@mui/material/TextField'
 import AddIcon from '@mui/icons-material/Add'
 import RemoveIcon from '@mui/icons-material/Remove'
 import Stack from '@mui/material/Stack'
@@ -76,9 +77,9 @@ export function Slider(props: Props) {
           <Typography id={props.title}>{props.title}</Typography>
         </Grid>
       )}
-      <Grid item container spacing={2} alignItems="center">
+      <Grid container spacing={2} alignItems="center">
         <Grid item xs>
-          <Stack spacing={1} direction="row" sx={{ mb: 1 }} alignItems="center">
+          <Stack spacing={1} direction="row" alignItems="center" justifyContent="center">
             <RemoveIcon onClick={onRemove} />
             <MuiSlider
               disabled={props.disabled}
@@ -94,7 +95,8 @@ export function Slider(props: Props) {
           </Stack>
         </Grid>
         <Grid item>
-          <MuiInput
+          <TextField
+            sx={{ width: 72 }}
             disabled={props.disabled}
             value={value}
             size="small"

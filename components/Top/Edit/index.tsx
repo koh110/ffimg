@@ -1,15 +1,15 @@
-import { useRef, useState, useEffect, useMemo } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { fabric } from 'fabric'
 import debounce from 'lodash.debounce'
-import Container from '@mui/material/Container'
 import Box from '@mui/material/Box'
+import Stack from '@mui/material/Stack'
 import { Header } from '../../Header'
-import { EditMenu } from './EditMenu'
-import { DefaultPanel, Props as DefaultPanelProps } from './EditMenu/DefaultPanel'
-import { EditPanel, Props as EditPanelProps } from './EditMenu/EditPanel'
+import { ToolBar, type Props as ToolBarProps } from './ToolBar'
+import { RightColumn, type Props as RightColumnProps } from './RightColumn/index'
 import { DownloadDialog } from './DownloadDialog'
 import { COPYRIGHT_STR } from '../../../lib/constants'
 import { useEditUIValue, useSetEditUIState } from '../../../lib/hooks/edit/ui'
+import { useSetEditState } from '../../../lib/hooks/edit'
 import { Thumb } from './Thumb'
 import { useBlur, useValues } from './index.hooks'
 
@@ -39,11 +39,13 @@ export default function Edit(props: Props) {
   const { scaleAndCropRef } = useValues()
   const { openModalFlag } = useEditUIValue()
   const { openModal, closeModal } = useSetEditUIState()
+  const { setScale } = useSetEditState()
   const { createBlur, moveBlur } = useBlur()
   const fabricRef = useRef<fabric.Canvas>()
   const boundingBoxRef = useRef<fabric.Rect>()
   const cropRef = useRef<fabric.Rect>()
   const imageRef = useRef<fabric.Image>()
+  const imageWrapperRef = useRef<HTMLDivElement>(null)
   const copyrightRef = useRef<fabric.Text>()
   const imgDomRef = useRef<HTMLImageElement>(null)
   const [downloadCanvas, setDownloadCanvas] = useState<HTMLCanvasElement>()
@@ -152,7 +154,7 @@ export default function Edit(props: Props) {
     fabricRef.current?.discardActiveObject()
   }
 
-  const handleOnCrop: EditPanelProps['handleOnCrop'] = (state) => {
+  const handleOnCrop: ToolBarProps['handleOnCrop'] = (state) => {
     if (!cropRef.current) {
       return
     }
@@ -184,7 +186,7 @@ export default function Edit(props: Props) {
     fabricRef.current?.renderAll()
   }
 
-  const onChangeCopyrightFontSize: DefaultPanelProps['onChangeCopyrightFontSize'] = (fontSize) => {
+  const onChangeCopyrightFontSize: ToolBarProps['onChangeCopyrightFontSize'] = (fontSize) => {
     if (!copyrightRef.current) {
       return
     }
@@ -193,7 +195,7 @@ export default function Edit(props: Props) {
     saveCropData.current()
   }
 
-  const onChangeCopyrightColor: DefaultPanelProps['onChangeCopyrightColor'] = (color) => {
+  const onChangeCopyrightColor: ToolBarProps['onChangeCopyrightColor'] = (color) => {
     if (!copyrightRef.current) {
       return
     }
@@ -202,7 +204,7 @@ export default function Edit(props: Props) {
     saveCropData.current()
   }
 
-  const onChangeCopyright: DefaultPanelProps['onChangeCopyright'] = (checked) => {
+  const onChangeCopyright: ToolBarProps['onChangeCopyright'] = (checked) => {
     if (!copyrightRef.current) {
       return
     }
@@ -255,6 +257,9 @@ export default function Edit(props: Props) {
       width: '400',
       height: '400'
     })
+    f.on('object:moving', () => {
+      requestIdleCallback(() => saveCropData.current())
+    })
 
     const copyrightText = new fabric.Text(COPYRIGHT_STR, { ...INIT_COPYRIGHT })
     copyrightText.on('moving', () => {
@@ -290,7 +295,7 @@ export default function Edit(props: Props) {
     fabricRef.current = f
   }
 
-  const imageOnLoad = () => {
+  const imageOnLoad: React.ReactEventHandler<HTMLImageElement> = (e) => {
     if (!imgDomRef.current || !fabricRef || !fabricRef.current) {
       return
     }
@@ -304,7 +309,9 @@ export default function Edit(props: Props) {
     imageRef.current = img
     fabricRef.current.add(img)
 
-    setCanvasSize(scaleAndCropRef.current.scale)
+    const newScale = Math.floor((imageWrapperRef.current?.offsetWidth ?? e.currentTarget.naturalWidth) / e.currentTarget.naturalWidth * 100)
+    setScale(newScale)
+    setCanvasSize(newScale)
 
     if (cropRef.current) {
       initCrop()
@@ -326,6 +333,7 @@ export default function Edit(props: Props) {
     openModal()
   }
 
+  /*
   const handleOnBlur: EditPanelProps['handleOnBlur'] = (id) => {
     if (!fabricRef.current) {
       return
@@ -346,6 +354,7 @@ export default function Edit(props: Props) {
       moveBlur(fabricRef.current, blurImage)
     })
   }
+  */
 
   const handleOnSelectById = (id: string) => {
     if (!fabricRef.current) {
@@ -373,7 +382,7 @@ export default function Edit(props: Props) {
     }
   }
 
-  const handleOnShape: EditPanelProps['handleOnShape'] = (id, color) => {
+  const handleOnAddShape: ToolBarProps['handleOnAddShape'] = (id, color) => {
     if (!fabricRef.current) {
       return
     }
@@ -393,66 +402,63 @@ export default function Edit(props: Props) {
     saveCropData.current()
   }
 
-  const handleOnChangeColorShape: EditPanelProps['handleOnChangeColorShape'] = (color) => {
+  const handleOnChangeColorShape: RightColumnProps['handleOnChangeColorShape'] = (id, color) => {
     if (!fabricRef.current) {
       return
     }
-    for (const obj of fabricRef.current.getActiveObjects()) {
-      obj.set({ fill: color }).setCoords()
+    for (const obj of fabricRef.current.getObjects()) {
+      if (obj.id === id) {
+        obj.set({ fill: color }).setCoords()
+      }
     }
     fabricRef.current?.renderAll()
+    saveCropData.current()
   }
 
-  const handleOnChangeOpacityShape: EditPanelProps['handleOnChangeOpacityShape'] = (opacity) => {
+  const handleOnChangeOpacityShape: RightColumnProps['handleOnChangeOpacityShape'] = (id, opacity) => {
     if (!fabricRef.current) {
       return
     }
-    for (const obj of fabricRef.current.getActiveObjects()) {
-      obj.set({ opacity }).setCoords()
+    for (const obj of fabricRef.current.getObjects()) {
+      if (obj.id === id) {
+        obj.set({ opacity }).setCoords()
+      }
     }
     fabricRef.current?.renderAll()
+    saveCropData.current()
   }
 
   return (
     <>
       <main>
         <Header />
-        <Container sx={{ my: 2 }} maxWidth={false}>
-          <div style={{ overflow: 'auto', maxWidth: '100%', maxHeight: '100vh' }}>
+        <ToolBar
+          handleOnCrop={handleOnCrop}
+          handleOnAddShape={handleOnAddShape}
+          onChangeScale={onChangeScale}
+          onChangeCopyright={onChangeCopyright}
+          onChangeCopyrightFontSize={onChangeCopyrightFontSize}
+          onChangeCopyrightColor={onChangeCopyrightColor}
+          onChangeRotate={onChangeRotate}
+          onChangeCrop={handleOnCrop}
+        />
+        <Stack direction="row" sx={{ width: '100%' }} >
+          <div ref={imageWrapperRef} style={{ overflow: 'auto', maxWidth: '100%', maxHeight: '100vh', flex: 1 }}>
             <Box>
               <img ref={imgDomRef} style={{ display: 'none' }} onLoad={imageOnLoad} />
               <canvas id="c" ref={ref} />
             </Box>
           </div>
-        </Container>
-        <EditMenu
-          thumb={<Thumb canvas={downloadCanvas} />}
-          defaultPanel={
-            <DefaultPanel
-              onChangeScale={onChangeScale}
-              onChangeRotate={onChangeRotate}
-              onChangeCopyright={onChangeCopyright}
-              onChangeCopyrightFontSize={onChangeCopyrightFontSize}
-              onChangeCopyrightColor={onChangeCopyrightColor}
-              onChangeCrop={handleOnCrop}
-            />
-          }
-          editPanel={
-            <EditPanel
-              handleOnCrop={handleOnCrop}
-              handleOnBlur={handleOnBlur}
-              handleOnSelectBlur={handleOnSelectById}
-              handleOnDeleteBlur={handleOnDeletebyId}
-              handleOnShape={handleOnShape}
-              handleOnChangeColorShape={handleOnChangeColorShape}
-              handleOnChangeOpacityShape={handleOnChangeOpacityShape}
-              handleOnSelectShape={handleOnSelectById}
-              handleOnDeleteShape={handleOnDeletebyId}
-            />
-          }
-          handleOnCancel={props.onBack}
-          handleOnDownload={handleOnDownload}
-        />
+          <RightColumn
+            thumb={<Thumb canvas={downloadCanvas} />}
+            handleOnCancel={props.onBack}
+            handleOnDownload={handleOnDownload}
+            handleOnSelectShape={handleOnSelectById}
+            handleOnDeleteShape={handleOnDeletebyId}
+            handleOnChangeColorShape={handleOnChangeColorShape}
+            handleOnChangeOpacityShape={handleOnChangeOpacityShape}
+          />
+        </Stack>
         <DownloadDialog
           open={openModalFlag}
           onClose={() => closeModal()}
