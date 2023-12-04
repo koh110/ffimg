@@ -262,9 +262,6 @@ export default function Edit(props: Props) {
     })
 
     const copyrightText = new fabric.Text(COPYRIGHT_STR, { ...INIT_COPYRIGHT })
-    copyrightText.on('moving', () => {
-      saveCropData.current()
-    })
     f.add(copyrightText)
     copyrightRef.current = copyrightText
 
