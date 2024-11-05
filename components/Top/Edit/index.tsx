@@ -1,5 +1,13 @@
 import { useRef, useState, useEffect } from 'react'
-import { fabric } from 'fabric'
+import {
+  config as fabricConfig,
+  Canvas,
+  Rect,
+  FabricImage,
+  FabricText,
+  type TextProps,
+  type TDataUrlOptions
+} from 'fabric'
 import debounce from 'lodash.debounce'
 import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
@@ -13,10 +21,6 @@ import { useSetEditState } from '../../../lib/hooks/edit'
 import { Thumb } from './Thumb'
 import { useBlur, useValues } from './index.hooks'
 
-// テクスチャサイズの上限をあげる。動的に変更したい
-// image blurなどが2048サイズになってしまうため
-fabric.textureSize = 2048 * 4
-
 type Props = {
   file: string
   fileName: string
@@ -25,7 +29,7 @@ type Props = {
 const INIT_COPYRIGHT_FONTSIZE = 15
 const INIT_COPYRIGHT_FILL = '#FFFFFF'
 
-const INIT_COPYRIGHT: fabric.TextOptions = {
+const INIT_COPYRIGHT: Partial<TextProps> = {
   left: 0,
   top: 0,
   fill: INIT_COPYRIGHT_FILL,
@@ -41,12 +45,12 @@ export default function Edit(props: Props) {
   const { openModal, closeModal } = useSetEditUIState()
   const { setScale } = useSetEditState()
   const { createBlur, moveBlur } = useBlur()
-  const fabricRef = useRef<fabric.Canvas>()
-  const boundingBoxRef = useRef<fabric.Rect>()
-  const cropRef = useRef<fabric.Rect>()
-  const imageRef = useRef<fabric.Image>()
+  const fabricRef = useRef<Canvas>()
+  const boundingBoxRef = useRef<Rect>()
+  const cropRef = useRef<Rect>()
+  const imageRef = useRef<FabricImage>()
   const imageWrapperRef = useRef<HTMLDivElement>(null)
-  const copyrightRef = useRef<fabric.Text>()
+  const copyrightRef = useRef<FabricText>()
   const imgDomRef = useRef<HTMLImageElement>(null)
   const [downloadCanvas, setDownloadCanvas] = useState<HTMLCanvasElement>()
 
@@ -57,12 +61,12 @@ export default function Edit(props: Props) {
       }
       const { scale, cropFlag }= scaleAndCropRef.current;
       fabricRef.current?.setZoom(1)
-      const options: fabric.IDataURLOptions = {
+      const options: Partial<TDataUrlOptions> = {
         format: 'png',
         left: 0,
         top: 0,
-        width: ((fabricRef.current.width ?? 1) * 100) / scale,
-        height: ((fabricRef.current.height ?? 1) * 100) / scale
+        width: fabricRef.current.width ?? 1,
+        height: fabricRef.current.height ?? 1
       }
       if (cropRef.current && cropFlag) {
         cropRef.current.set({ opacity: 0 }).setCoords()
@@ -88,10 +92,10 @@ export default function Edit(props: Props) {
     }
 
     fabricRef.current?.setZoom(_scale / 100)
-    const bounding = imageRef.current.setCoords().getBoundingRect()
+    const bounding = imageRef.current.getBoundingRect()
     fabricRef.current?.setDimensions({
-      width: bounding.width,
-      height: bounding.height
+      width: (bounding.width * _scale) / 100,
+      height: (bounding.height * _scale) / 100
     })
 
     if (boundingBoxRef.current) {
@@ -99,13 +103,14 @@ export default function Edit(props: Props) {
         .set({
           top: 0,
           left: 0,
-          width: (bounding.width / _scale) * 100,
-          height: (bounding.height / _scale) * 100
+          width: bounding.width,
+          height: bounding.height
         })
         .setCoords()
     }
-
-    imageRef.current.viewportCenter().setCoords()
+    // @todo
+    // imageRef.current.viewportCenter()
+    saveCropData.current()
   }
 
   const onChangeScale = (newScale: number) => {
@@ -164,8 +169,9 @@ export default function Edit(props: Props) {
       cropRef.current.fill = 'rgba(0, 0, 0, 0.5)'
       cropRef.current.selectable = true
       cropRef.current.visible = true
-      cropRef.current.bringToFront()
       fabricRef.current?.setActiveObject(cropRef.current)
+      fabricRef.current?.bringObjectToFront(cropRef.current)
+      fabricRef.current?.renderAll()
       return
     }
 
@@ -178,7 +184,7 @@ export default function Edit(props: Props) {
     if (state.state === 'done') {
       cropRef.current.fill = 'rgba(0, 0, 0, 0)'
       cropRef.current.strokeWidth = 1
-      cropRef.current.bringToFront()
+      fabricRef.current?.bringObjectToFront(cropRef.current)
       fabricRef.current?.discardActiveObject()
     }
 
@@ -234,7 +240,7 @@ export default function Edit(props: Props) {
     }
 
     copyrightRef.current.setCoords()
-    copyrightRef.current.bringToFront()
+    fabricRef.current?.bringObjectToFront(copyrightRef.current)
     fabricRef.current?.setActiveObject(copyrightRef.current)
     fabricRef.current?.renderAll()
     saveCropData.current()
@@ -249,7 +255,11 @@ export default function Edit(props: Props) {
       return
     }
 
-    const f = new fabric.Canvas(node, {
+    // テクスチャサイズの上限をあげる。動的に変更したい
+    // image blurなどが2048サイズになってしまうため
+    fabricConfig.textureSize = 2048 * 4
+
+    const f = new Canvas(node, {
       isDrawingMode: false,
       backgroundColor: 'rgba(255, 255, 255, 0.05)'
     })
@@ -261,21 +271,21 @@ export default function Edit(props: Props) {
       requestIdleCallback(() => saveCropData.current())
     })
 
-    const copyrightText = new fabric.Text(COPYRIGHT_STR, { ...INIT_COPYRIGHT })
+    const copyrightText = new FabricText(COPYRIGHT_STR, { ...INIT_COPYRIGHT })
     f.add(copyrightText)
     copyrightRef.current = copyrightText
 
-    const boundingBox = new fabric.Rect({
+    const boundingBox = new Rect({
       fill: 'none',
-      width: 20,
-      height: 20,
+      width: f.width,
+      height: f.height,
       evented: false,
       selectable: false
     })
     boundingBoxRef.current = boundingBox
     f.add(boundingBox)
 
-    const crop = new fabric.Rect({
+    const crop = new Rect({
       fill: 'rgba(0, 0, 0, 0)',
       width: 20,
       height: 20,
@@ -297,7 +307,7 @@ export default function Edit(props: Props) {
       return
     }
 
-    const img = new fabric.Image(imgDomRef.current, {
+    const img = new FabricImage(imgDomRef.current, {
       top: 0,
       left: 0,
       centeredRotation: true,
@@ -306,6 +316,7 @@ export default function Edit(props: Props) {
     imageRef.current = img
     fabricRef.current.add(img)
 
+    // todo
     const newScale = Math.floor((imageWrapperRef.current?.offsetWidth ?? e.currentTarget.naturalWidth) / e.currentTarget.naturalWidth * 100)
     setScale(newScale)
     setCanvasSize(newScale)
@@ -358,7 +369,8 @@ export default function Edit(props: Props) {
       return
     }
     for (const obj of fabricRef.current.getObjects()) {
-      if (obj.id === id) {
+      const objId = obj.get('id')
+      if (objId === id) {
         fabricRef.current.setActiveObject(obj)
         fabricRef.current.renderAll()
         break
@@ -371,7 +383,8 @@ export default function Edit(props: Props) {
       return
     }
     for (const obj of fabricRef.current.getObjects()) {
-      if (obj.id === id) {
+      const objId = obj.get('id')
+      if (objId === id) {
         fabricRef.current.remove(obj)
         saveCropData.current()
         break
@@ -383,17 +396,19 @@ export default function Edit(props: Props) {
     if (!fabricRef.current) {
       return
     }
-    const rect = new fabric.Rect({
+    const rect = new Rect({
       fill: color,
       width: fabricRef.current.getWidth() / 4,
       height: fabricRef.current.getHeight() / 4,
       cornerStyle: 'circle',
       strokeUniform: true
     })
-    rect.id = id
-    rect.bringToFront()
-    rect.viewportCenter().setCoords()
+    rect.set('id', id)
+    // todo
+    // rect.viewportCenter().setCoords()
+    fabricRef.current.viewportCenterObject(rect)
     fabricRef.current.add(rect)
+    fabricRef.current.bringObjectToFront(rect)
     fabricRef.current.renderAll()
 
     saveCropData.current()
@@ -404,7 +419,8 @@ export default function Edit(props: Props) {
       return
     }
     for (const obj of fabricRef.current.getObjects()) {
-      if (obj.id === id) {
+      const objId = obj.get('id')
+      if (objId === id) {
         obj.set({ fill: color }).setCoords()
       }
     }
@@ -417,7 +433,8 @@ export default function Edit(props: Props) {
       return
     }
     for (const obj of fabricRef.current.getObjects()) {
-      if (obj.id === id) {
+      const objId = obj.get('id')
+      if (objId === id) {
         obj.set({ opacity }).setCoords()
       }
     }

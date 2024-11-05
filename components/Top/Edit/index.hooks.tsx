@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react'
 import throttle from 'lodash.throttle'
-import { fabric } from 'fabric'
+import { Canvas, FabricImage, filters } from 'fabric'
 import { useEditValue } from '../../../lib/hooks/edit'
 
 export const useValues = () => {
@@ -17,7 +17,7 @@ export const useValues = () => {
 }
 
 export const useBlur = () => {
-  const createBlur = (canvas: fabric.Canvas, id: string) => {
+  const createBlur = (canvas: Canvas, id: string) => {
     const zoom = canvas.getZoom()
 
     canvas.setZoom(1)
@@ -31,7 +31,7 @@ export const useBlur = () => {
       top: -canvasHeight / 2
     })
 
-    const blurImage = new fabric.Image(copiedCanvas, {
+    const blurImage = new FabricImage(copiedCanvas, {
       width: canvasWidth / 2,
       height: canvasHeight / 2,
       cropX: canvasWidth / 2,
@@ -43,9 +43,9 @@ export const useBlur = () => {
       visible: true,
       backgroundColor: 'rgba(255, 255, 255, 0.05)'
     })
-    blurImage.id = id
+    blurImage.set('id', id)
     blurImage.setControlsVisibility({ mtr: false })
-    const filter = new fabric.Image.filters.Blur({
+    const filter = new filters.Blur({
       blur: 0.2
     })
     blurImage.filters?.push(filter)
@@ -60,7 +60,7 @@ export const useBlur = () => {
   }
 
   const moveBlur = useRef(
-    throttle((canvas: fabric.Canvas, image: fabric.Image) => {
+    throttle((canvas: Canvas, image: FabricImage) => {
       const canvasWidth = canvas.width ?? 100
       const canvasHeight = canvas.height ?? 100
       const scaleX = image.scaleX ?? 1

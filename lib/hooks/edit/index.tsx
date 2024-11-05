@@ -1,11 +1,10 @@
 import { atom, useRecoilValue, useSetRecoilState } from 'recoil'
-import type { fabric } from 'fabric'
 import { CropState, CropHandler } from '../../type'
 
 type State = {
   scale: number
   rotate: number
-  copyrightColor: string | fabric.Pattern | fabric.Gradient
+  copyrightColor: string
   copyrightFontSize: number
   shape: string[]
   shapeData: {

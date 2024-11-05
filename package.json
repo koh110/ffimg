@@ -13,32 +13,30 @@
     "serve": "serve out -l 3000"
   },
   "dependencies": {
+    "@emotion/cache": "^11.13.1",
     "@emotion/react": "^11.8.1",
     "@emotion/styled": "^11.8.1",
     "@mui/icons-material": "^5.4.2",
     "@mui/material": "^5.4.3",
-    "fabric": "^5.2.1",
+    "@mui/material-nextjs": "^6.1.6",
+    "fabric": "^6.4.3",
     "lodash.debounce": "^4.0.8",
     "lodash.throttle": "^4.1.1",
-    "next": "^13.4.12",
+    "next": "^14.2.16",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "recoil": "^0.7.7"
   },
   "devDependencies": {
-    "@types/fabric": "^5.3.3",
     "@types/lodash.debounce": "^4.0.6",
     "@types/lodash.throttle": "^4.1.6",
-    "@types/node": "^20.4.4",
+    "@types/node": "^22.9.0",
     "@types/react": "^18.2.15",
     "eslint": "^8.45.0",
     "eslint-config-next": "^13.4.12",
-    "next": "^13.0.0",
     "prettier": "^3.0.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
     "recoil": "^0.7.6",
     "serve": "^14.2.0",
-    "typescript": "^5.1.6"
+    "typescript": "^5.6.3"
   }
 }
